@@ -904,7 +904,7 @@
             if (response.status === 401 || response.status === 403) {
                 if (response.status === 403) alert("Acceso restringido: Se requieren permisos de Super Admin.");
                 else alert("Sesión expirada o no autorizada.");
-                window.location.href = 'login.html';
+                window.location.href = 'login1.html';
             }
             return response;
         }
@@ -913,7 +913,7 @@
             const token = localStorage.getItem('nexo_token');
             const rol = localStorage.getItem('nexo_rol');
             if (!token) {
-                window.location.href = 'login.html';
+                window.location.href = 'login1.html';
             } else if (rol !== 'superadmin') {
                 alert("Acceso denegado. Esta sección está reservada exclusivamente para Super Admins.");
                 window.location.href = 'index.html';
@@ -922,7 +922,7 @@
 
         function logout() {
             localStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = 'login1.html';
         }
 
         async function cargarUsuarios() {

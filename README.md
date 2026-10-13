@@ -34,7 +34,7 @@ El sistema necesita una base de datos llamada `ruteo_db`.
 
 ### 3. Acceso al Sistema (Frontend)
 1. Una vez que el backend esté corriendo (verás un mensaje de "Servidor iniciado"), ve a la carpeta `frontend/`.
-2. Abre el archivo **`login.html`** en tu navegador.
+2. Abre el archivo **`login1.html`** en tu navegador.
 
 ---
 

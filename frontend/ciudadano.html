@@ -6,7 +6,7 @@
 <script>
     const token = localStorage.getItem('nexo_token');
     const rol = (localStorage.getItem('nexo_rol') || '').toLowerCase();
-    if (!token) { window.location.href = 'login.html'; }
+    if (!token) { window.location.href = 'login1.html'; }
     else if (rol === 'superadmin') { window.location.href = 'admin.html'; }
 </script>
 <title>EcoRuta · Portal Ciudadano</title>
@@ -90,12 +90,12 @@
 const BARRIOS = ["Sajonia","Vista Alegre","Centro Histórico","Villa Morra","Recoleta","San Roque","La Encarnación","Catedral","Tacumbú","Obrero","Nazareth","Hipódromo","Pinozá","San Pablo","Trinidad","Zeballos Cué","Botánico","Loma Pytá","Salvador del Mundo","Santa María"];
 document.getElementById('listaBarrios').innerHTML = BARRIOS.map(b => `<option value="${b}">`).join('');
 document.getElementById('lblUser').textContent = localStorage.getItem('nexo_user') || '';
-function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+function logout() { localStorage.clear(); window.location.href = 'login1.html'; }
 async function fetchAuth(url, options = {}) {
     const t = localStorage.getItem('nexo_token');
     options.headers = Object.assign({}, options.headers, { 'Authorization': 'Bearer ' + t });
     const r = await fetch(url, options);
-    if (r.status === 401) { alert('Sesión expirada'); window.location.href = 'login.html'; throw new Error('401'); }
+    if (r.status === 401) { alert('Sesión expirada'); window.location.href = 'login1.html'; throw new Error('401'); }
     return r;
 }
 // Mapa

@@ -51,8 +51,8 @@ Cuando pases el front institucional:
 - Súbelo como `frontend/portal.html` (landing pública, sin auth).
 - Cambia en `Main.StaticHandler` la ruta `/` de `/index.html` a `/portal.html`
   (una línea), o deja `/` como está y enlaza el portal desde el login.
-- El portal tendrá el botón **Acceder** → `login.html`, y tras el login cada rol
-  cae en su módulo (ver `login.html`, redirección por rol).
+- El portal tendrá el botón **Acceder** → `login1.html`, y tras el login cada rol
+  cae en su módulo (ver `login1.html`, redirección por rol).
 
 ## 6. Notas
 

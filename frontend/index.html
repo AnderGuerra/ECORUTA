@@ -8,7 +8,7 @@
         const token = localStorage.getItem('nexo_token');
         const rol = (localStorage.getItem('nexo_rol') || 'gestor').toLowerCase();
         if (!token) {
-            window.location.href = 'login.html';
+            window.location.href = 'login1.html';
         } else if (rol === 'superadmin') {
             window.location.href = 'admin.html';
         } else if (rol === 'ciudadano') {
@@ -1348,7 +1348,7 @@
             if (!options.headers) options.headers = {};
             options.headers['Authorization'] = `Bearer ${token}`;
             const response = await fetch(url, options);
-            if (response.status === 401) { alert("Sesión expirada"); window.location.href = 'login.html'; }
+            if (response.status === 401) { alert("Sesión expirada"); window.location.href = 'login1.html'; }
             return response;
         }
 
@@ -2378,7 +2378,7 @@ document.getElementById('modalRutas').style.display = 'flex';
             // Stub - se cargan al abrir el modal
         }
 
-        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function logout() { localStorage.clear(); window.location.href = 'login1.html'; }
 
         function mostrarLoader(texto = "Optimizando rutas... por favor espere") {
             const overlay = document.getElementById('loadingOverlay');
