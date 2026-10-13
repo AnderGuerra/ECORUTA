@@ -857,20 +857,10 @@
         <!-- Panel Configuración -->
         <div id="panelConfig" style="display:none; background:var(--card-light); border-radius:24px; padding:24px; margin-bottom:24px; border:var(--card-border); box-shadow:var(--card-shadow);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border-light); padding-bottom:15px;">
-                <h3 style="margin:0;"><i class="fas fa-sliders-h" style="color:var(--accent-gold);"></i> Configuración de Ruteo</h3>
+                <h3 style="margin:0;"><i class="fas fa-cog" style="color:var(--accent-gold);"></i> Configuración</h3>
                 <button class="btn-icon" onclick="toggleConfig()"><i class="fas fa-times"></i></button>
             </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px;">
-                <div>
-                    <label style="font-size:12px; font-weight:600;"><i class="fas fa-map-marker-alt" style="color:var(--accent-gold);"></i> Link de Google Maps de inicio</label>
-                    <input type="text" id="puntoInicio" class="control-input" placeholder="Ej: https://maps.app.goo.gl/..." style="width:100%;">
-                </div>
-                <div>
-                    <label style="font-size:12px; font-weight:600;"><i class="fas fa-star" style="color:var(--accent-gold);"></i> Prioridad de Ruteo</label>
-                    <select id="prioridadTipo" class="control-input" style="width:100%;">
-                        <option value="ninguna">Ninguna - Ruta más óptima</option>
-                    </select>
-                </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:20px; align-items:center;">
                 <div>
                     <label style="font-size:12px; font-weight:600;"><i class="fas fa-adjust" style="color:var(--accent-gold);"></i> Tema (Oscuro / Claro)</label><br>
                     <div style="margin-top:10px;">
@@ -880,9 +870,11 @@
                         </label>
                     </div>
                 </div>
-                <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
-                    <button class="btn-secondary-outline" onclick="abrirModalCategorias()" style="flex:1;"><i class="fas fa-tags"></i> Categorías</button>
-                    <button class="btn-secondary-outline" onclick="abrirModalTransportes()" style="flex:1;"><i class="fas fa-truck"></i> Transportes (Choferes/Vehículos)</button>
+                <div>
+                    <label style="font-size:12px; font-weight:600;"><i class="fas fa-truck" style="color:var(--accent-gold);"></i> Gestión de Transportes</label><br>
+                    <div style="margin-top:10px;">
+                        <button class="btn-secondary-outline" onclick="abrirModalTransportes()" style="width:100%; height:44px; font-size:14px; font-weight:600;"><i class="fas fa-truck"></i> Choferes y Vehículos</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -915,14 +907,10 @@
         <div class="toolbar-card">
             <div class="search-box">
                 <i class="fas fa-search search-icon"></i>
-                <input type="text" id="buscador" class="search-input" placeholder="Buscar cliente por nombre o cadena..." oninput="aplicarFiltros()">
+                <input type="text" id="buscador" class="search-input" placeholder="Buscar punto de recolección por nombre o barrio..." oninput="aplicarFiltros()">
             </div>
             
             <div class="filters-group">
-                <select id="filtroCategoria" class="select-filter" onchange="aplicarFiltros()">
-                    <option value="todas">Todas las categorías</option>
-                </select>
-                
                 <select id="ordenClientes" class="select-filter" onchange="aplicarFiltros()">
                     <option value="recientes">Más recientes primero</option>
                     <option value="abc">Orden alfabético (A-Z)</option>
@@ -936,7 +924,7 @@
                     <input type="number" id="numMoviles" class="moviles-input" value="1" min="1" max="20">
                 </div>
 
-                <button class="btn-secondary-outline" onclick="abrirModalAgrupar()" style="height:38px; padding:8px 16px; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:6px;" title="Crear carpetas de clientes">
+                <button class="btn-secondary-outline" onclick="abrirModalAgrupar()" style="height:38px; padding:8px 16px; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:6px;" title="Crear carpetas de puntos">
                     <i class="fas fa-folder-plus"></i> Agrupar
                 </button>
                 
@@ -954,10 +942,10 @@
                 <thead>
                     <tr>
                         <th style="width:70px;"><label class="switch"><input type="checkbox" class="toggle" id="checkboxTodo" onclick="toggleAll()"><span class="slider"></span><span class="slider-card"></span></label></th>
-                        <th>Cliente / Sucursal</th>
+                        <th>Puntos de recolección</th>
                         <th style="width:140px; text-align:center;">
                             <button class="btn-primary" onclick="abrirModalCliente()" style="padding:8px 16px; font-size:13px; white-space:nowrap;">
-                                <i class="fas fa-user-plus"></i> Agregar Cliente
+                                <i class="fas fa-plus-circle"></i> Agregar Punto
                             </button>
                         </th>
                     </tr>
@@ -965,7 +953,7 @@
                 <tbody id="cuerpoTabla">
                     <tr>
                         <td colspan="3" style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin"></i>
-                            Cargando clientes...</td>
+                            Cargando puntos de recolección...</td>
                     </tr>
                 </tbody>
             </table>
@@ -1021,7 +1009,7 @@
 
     <div id="modalCliente" class="modal-overlay">
         <div class="modal-container">
-            <h2 id="modalTitulo"><i class="fas fa-user-plus"></i> Añadir Cliente</h2>
+            <h2 id="modalTitulo"><i class="fas fa-plus-circle"></i> Añadir Punto de Recolección</h2>
             <form id="formCliente" onsubmit="guardarCliente(event)">
                 <input type="hidden" id="clienteId">
                 <div style="margin-bottom:18px;">
@@ -1029,8 +1017,9 @@
                     <input type="text" id="clienteNombre" class="control-input" required style="width:100%; box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:18px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted-light); text-transform:uppercase; letter-spacing:0.3px;">Tipo de Cliente</label>
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted-light); text-transform:uppercase; letter-spacing:0.3px;">Tipo de Punto</label>
                     <select id="clienteTipo" class="control-input" style="width:100%; box-sizing:border-box;">
+                        <option value="Punto de Recolección" selected>Punto de Recolección</option>
                     </select>
                 </div>
                 <div style="margin-bottom:18px;">
@@ -1039,11 +1028,11 @@
                     <small style="display:block; margin-top:5px; color:var(--text-muted-light); font-size:11px;"><i class="fas fa-info-circle"></i> Se extraerán las coordenadas automáticamente</small>
                 </div>
                 <div style="margin-bottom:18px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted-light); text-transform:uppercase; letter-spacing:0.3px;">Carpeta / Grupo</label>
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted-light); text-transform:uppercase; letter-spacing:0.3px;">Barrio / Grupo</label>
                     <select id="clienteCadena" class="control-input" style="width:100%; box-sizing:border-box;">
                         <option value="NINGUNO">Sin grupo</option>
                     </select>
-                    <small style="display:block; margin-top:5px; color:var(--text-muted-light); font-size:11px;"><i class="fas fa-info-circle"></i> Seleccioná la carpeta a la que pertenece este cliente</small>
+                    <small style="display:block; margin-top:5px; color:var(--text-muted-light); font-size:11px;"><i class="fas fa-info-circle"></i> Seleccioná el barrio o grupo al que pertenece este punto</small>
                 </div>
                 <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:24px; padding-top:16px; border-top:1px solid var(--border-light);">
                     <button type="button" class="btn-secondary-outline" onclick="cerrarModalCliente()"><i class="fas fa-times"></i> Cancelar</button>
@@ -1443,11 +1432,9 @@
 
         function aplicarFiltros() {
             const termino = document.getElementById('buscador').value.toLowerCase();
-            const categoria = document.getElementById('filtroCategoria').value;
             const orden = document.getElementById('ordenClientes').value;
             clientesFiltrados = clientes.filter(c => 
-                c.nombre.toLowerCase().includes(termino) && 
-                (categoria === 'todas' || c.tipo_cliente === categoria)
+                c.nombre.toLowerCase().includes(termino) || (c.cadena && c.cadena.toLowerCase().includes(termino))
             );
             if (orden === 'abc') {
                 clientesFiltrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -1511,7 +1498,7 @@
         }
 
         function renderFila(c) {
-            return `<tr><td style="padding-left:10px;"><label class="switch" style="display:inline-flex; vertical-align:middle;"><input type="checkbox" class="toggle checkbox-cliente" data-id="${c.id}" ${c.seleccionado ? 'checked' : ''} onchange="toggleCliente(${c.id})"><span class="slider"></span><span class="slider-card"></span></label></td><td><strong>${escapeHtml(c.nombre)}</strong><br><span class="badge-tag"><i class="fas fa-tag"></i> ${c.tipo_cliente || 'minorista/gastronómico'}</span><small style="display:block; color:var(--text-muted-light);">${c.direccion || 'Gran Asunción'}</small></td><td style="white-space: nowrap;"><div style="display: flex; gap: 8px; align-items: center;"><button class="btn-icon" onclick="editarCliente(${c.id})" title="Editar"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="copiarUrlCliente(${c.id})" title="Copiar URL"><i class="fas fa-link"></i></button><button class="btn-icon" onclick="eliminarCliente(${c.id})" style="color:var(--danger);" title="Eliminar"><i class="fas fa-trash"></i></button></div></td></tr>`;
+            return `<tr><td style="padding-left:10px;"><label class="switch" style="display:inline-flex; vertical-align:middle;"><input type="checkbox" class="toggle checkbox-cliente" data-id="${c.id}" ${c.seleccionado ? 'checked' : ''} onchange="toggleCliente(${c.id})"><span class="slider"></span><span class="slider-card"></span></label></td><td><strong>${escapeHtml(c.nombre)}</strong><br><span class="badge-tag"><i class="fas fa-recycle"></i> ${escapeHtml(c.tipo_cliente || 'Punto de Recolección')}</span><small style="display:block; color:var(--text-muted-light);">${c.direccion || 'Gran Asunción'}</small></td><td style="white-space: nowrap;"><div style="display: flex; gap: 8px; align-items: center;"><button class="btn-icon" onclick="editarCliente(${c.id})" title="Editar"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="copiarUrlCliente(${c.id})" title="Copiar URL"><i class="fas fa-link"></i></button><button class="btn-icon" onclick="eliminarCliente(${c.id})" style="color:var(--danger);" title="Eliminar"><i class="fas fa-trash"></i></button></div></td></tr>`;
         }
         
         function copiarUrlCliente(id) { 
@@ -1749,27 +1736,9 @@
         function escapeHtml(t) { if (!t) return ''; const div = document.createElement('div'); div.textContent = t; return div.innerHTML; }
 
         function toggleConfig() {
-    let p = document.getElementById('panelConfig');
-    const wasHidden = p.style.display === 'none' || p.style.display === '';
-    p.style.display = wasHidden ? 'block' : 'none';
-    // If we are closing the panel (it was visible), save config
-    if (!wasHidden) {
-        // Save punto inicio URL
-        const url = document.getElementById('puntoInicio').value.trim();
-        if (url) localStorage.setItem('puntoInicioUrl', url);
-        else localStorage.removeItem('puntoInicioUrl');
-        // Save prioridad
-        const prioridad = document.getElementById('prioridadTipo').value;
-        localStorage.setItem('prioridadTipo', prioridad);
-    } else {
-        // If opening, load saved values
-        const savedUrl = localStorage.getItem('puntoInicioUrl') || '';
-        document.getElementById('puntoInicio').value = savedUrl;
-        const savedPrioridad = localStorage.getItem('prioridadTipo') || 'ninguna';
-        const selPrioridad = document.getElementById('prioridadTipo');
-        if (selPrioridad && [...selPrioridad.options].some(o => o.value === savedPrioridad)) selPrioridad.value = savedPrioridad;
-    }
-}
+            let p = document.getElementById('panelConfig');
+            p.style.display = (p.style.display === 'none' || p.style.display === '') ? 'block' : 'none';
+        }
         function toggleDarkMode(isDark) {
             if (isDark) {
                 document.body.classList.add('dark-mode');
@@ -1803,9 +1772,9 @@
         }
         syncThemeUI(isDarkModeActive);
 
-        function abrirModalCliente() { document.getElementById('modalTitulo').innerHTML = '<i class="fas fa-user-plus"></i> Añadir Cliente'; document.getElementById('clienteId').value = ''; document.getElementById('formCliente').reset(); popularSelectCadena('NINGUNO'); seleccionarTipoCliente(categorias.length ? categorias[0].nombre : ''); document.getElementById('modalCliente').style.display = 'flex'; }
+        function abrirModalCliente() { document.getElementById('modalTitulo').innerHTML = '<i class="fas fa-plus-circle"></i> Añadir Punto de Recolección'; document.getElementById('clienteId').value = ''; document.getElementById('formCliente').reset(); popularSelectCadena('NINGUNO'); seleccionarTipoCliente('Punto de Recolección'); document.getElementById('modalCliente').style.display = 'flex'; }
         function cerrarModalCliente() { document.getElementById('modalCliente').style.display = 'none'; }
-        function editarCliente(id) { let c = clientes.find(c => c.id === id); if (!c) return; document.getElementById('modalTitulo').innerHTML = '<i class="fas fa-edit"></i> Editar Cliente'; document.getElementById('clienteId').value = c.id; document.getElementById('clienteNombre').value = c.nombre; seleccionarTipoCliente(c.tipo_cliente || 'minorista/gastronómico'); popularSelectCadena(c.cadena); document.getElementById('modalCliente').style.display = 'flex'; }
+        function editarCliente(id) { let c = clientes.find(c => c.id === id); if (!c) return; document.getElementById('modalTitulo').innerHTML = '<i class="fas fa-edit"></i> Editar Punto de Recolección'; document.getElementById('clienteId').value = c.id; document.getElementById('clienteNombre').value = c.nombre; document.getElementById('clienteUrl').value = c.url_google || ''; seleccionarTipoCliente('Punto de Recolección'); popularSelectCadena(c.cadena); document.getElementById('modalCliente').style.display = 'flex'; }
         
         function extraerCoordenadas(url) {
             if (!url) return null;
@@ -1837,7 +1806,7 @@
             e.preventDefault(); 
             let id = document.getElementById('clienteId').value; 
             let nombre = document.getElementById('clienteNombre').value; 
-            let tipo = document.getElementById('clienteTipo').value; 
+            let tipo = 'Punto de Recolección'; 
             let url = document.getElementById('clienteUrl').value; 
             
             // Extraer coordenadas de la URL
@@ -1856,7 +1825,7 @@
                         Math.abs(c.latitud - coords.lat) < 0.00001 &&
                         Math.abs(c.longitud - coords.lon) < 0.00001
                     );
-                    alert(`⚠️ Ya existe un cliente con las mismas coordenadas:\n${clienteDup.nombre} (${clienteDup.latitud}, ${clienteDup.longitud})`);
+                    alert(`⚠️ Ya existe un punto de recolección con las mismas coordenadas:\n${clienteDup.nombre} (${clienteDup.latitud}, ${clienteDup.longitud})`);
                     return;
                 }
             }
@@ -1916,7 +1885,13 @@
             try {
                 let response = await fetchWithAuth('/api/generar-rutas', {
                     method: 'POST',
-                    body: JSON.stringify({ cliente_ids: seleccionados, num_moviles: numM, prioridad: document.getElementById('prioridadTipo').value, punto_inicio: document.getElementById('puntoInicio').value, asignaciones: asignaciones })
+                    body: JSON.stringify({ 
+                        cliente_ids: seleccionados, 
+                        num_moviles: numM, 
+                        prioridad: document.getElementById('prioridadTipo')?.value || 'ninguna', 
+                        punto_inicio: document.getElementById('puntoInicio')?.value || '', 
+                        asignaciones: asignaciones 
+                    })
                 });
                 if (!response.ok) throw new Error();
                 let data = await response.json();
@@ -2133,18 +2108,10 @@
 
             const tipo = document.getElementById('clienteTipo');
             if (tipo) {
-                const prev = tipo.value;
-                tipo.innerHTML = '';
-                categorias.forEach(cat => {
-                    const opt = document.createElement('option');
-                    opt.value = cat.nombre;
-                    opt.textContent = cat.nombre;
-                    tipo.appendChild(opt);
-                });
-                if ([...tipo.options].some(o => o.value === prev)) tipo.value = prev;
+                tipo.innerHTML = '<option value="Punto de Recolección" selected>Punto de Recolección</option>';
             }
 
-            ['prioridadTipo', 'rutaPrioridad'].forEach(id => {
+            ['rutaPrioridad'].forEach(id => {
                 const sel = document.getElementById(id);
                 if (!sel) return;
                 const prev = sel.value;
@@ -2153,7 +2120,7 @@
                 categorias.forEach(cat => {
                     const opt = document.createElement('option');
                     opt.value = cat.nombre;
-                    opt.textContent = `Clientes "${cat.nombre}" primero`;
+                    opt.textContent = `Puntos "${cat.nombre}" primero`;
                     sel.appendChild(opt);
                 });
                 if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
@@ -2243,15 +2210,8 @@
         function seleccionarTipoCliente(valor) {
             const sel = document.getElementById('clienteTipo');
             if (!sel) return;
-            if ([...sel.options].some(o => o.value === valor)) {
-                sel.value = valor;
-            } else {
-                const opt = document.createElement('option');
-                opt.value = valor || '';
-                opt.textContent = valor || '';
-                opt.selected = true;
-                sel.appendChild(opt);
-            }
+            sel.innerHTML = '<option value="Punto de Recolección" selected>Punto de Recolección</option>';
+            sel.value = 'Punto de Recolección';
         }
 
         // ================= GESTION DE RUTAS (EDICION Y FINALIZACION) =================
