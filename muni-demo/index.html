@@ -80,6 +80,18 @@ button { font-family: inherit; }
   transition: background .2s, color .2s;
 }
 .main-nav a.nav-acceso:hover { background: var(--palette1); color: #fff !important; }
+/* Botón del camión reciclador → login EcoRuta */
+.main-nav a.nav-camion {
+  color: #fff !important;
+  font-weight: 700;
+  background: #2e9e5b;
+  border: 2px solid #2e9e5b;
+  border-radius: 4px;
+  padding: 0.4em 1em !important;
+  margin-left: 0.5em;
+  transition: background .2s, transform .2s;
+}
+.main-nav a.nav-camion:hover { background: #237a46; transform: translateY(-1px); }
 .drawer-menu a.drawer-acceso { color: #fff !important; font-weight: 700; }
 
 .main-nav > ul > li.has-children > a::after {
@@ -714,6 +726,7 @@ const menuItems = [
   },
   // Acceso al sistema EcoRuta (denuncias + rutas). Ruta absoluta: funciona
   // tanto en local como en Render, se sirva el portal en / o en /muni-demo/.
+  { label: '🚛 Camión EcoRuta', href: '/login1.html', cls: 'nav-camion' },
   { label: '🔒 Acceder', href: '/login1.html', cls: 'nav-acceso' },
 ];
 
@@ -788,7 +801,7 @@ function renderDrawerItems(items) {
   return items.map((item) => {
     const hasChildren = item.children && item.children.length;
     if (!hasChildren) {
-      const dCls = item.cls === 'nav-acceso' ? 'drawer-acceso' : (item.cls || '');
+      const dCls = (item.cls === 'nav-acceso' || item.cls === 'nav-camion') ? 'drawer-acceso' : (item.cls || '');
       return `<li><a href="${item.href || '#'}"${dCls ? ` class="${dCls}"` : ''}>${item.label}</a></li>`;
     }
     return `
