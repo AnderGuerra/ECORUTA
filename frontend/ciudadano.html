@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,58 +21,57 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Leaflet CSS -->
+    <!-- Leaflet CSS & Plugins -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 
+    <!-- Script de Polígonos y Cronogramas Oficiales de Barrios de Asunción -->
+    <script src="js/barrios_asuncion.js"></script>
+
     <style>
         :root {
-            --bg-base: #fafafa;
+            --bg-base: #f8fafc;
             --surface: #ffffff;
-            --surface-subtle: #f4f4f5;
-            --border: #e4e4e7;
-            --border-subtle: #f4f4f5;
-            --text-main: #09090b;
-            --text-muted: #71717a;
-            --text-subtle: #a1a1aa;
+            --surface-subtle: #f1f5f9;
+            --border: #e2e8f0;
+            --border-subtle: #cbd5e1;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-subtle: #94a3b8;
             --primary: #10b981;
             --primary-hover: #059669;
             --primary-light: #ecfdf5;
             --primary-text: #065f46;
             --accent: #0f172a;
-            --accent-hover: #1e293b;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
             --radius-full: 9999px;
-            --map-filter: none;
         }
 
         html.dark {
-            --bg-base: #090d16;
-            --surface: #111827;
-            --surface-subtle: #1f2937;
-            --border: #273142;
-            --border-subtle: #1e2638;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
-            --text-subtle: #6b7280;
+            --bg-base: #0b0f19;
+            --surface: #131b2e;
+            --surface-subtle: #1e293b;
+            --border: #283548;
+            --border-subtle: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-subtle: #64748b;
             --primary: #10b981;
             --primary-hover: #34d399;
-            --primary-light: rgba(16, 185, 129, 0.12);
+            --primary-light: rgba(16, 185, 129, 0.14);
             --primary-text: #6ee7b7;
-            --accent: #f9fafb;
-            --accent-hover: #e5e7eb;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
-            --map-filter: brightness(0.78) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.65);
+            --accent: #f8fafc;
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7);
         }
 
         * {
@@ -94,18 +93,36 @@
             transition: background-color 0.2s ease, color 0.2s ease;
         }
 
-        /* Top Navigation Header */
+        /* Full Screen Map Container (Sin filtros oscuros destructivos) */
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            background: #e2e8f0;
+        }
+
+        /* Top Navigation Header & Islands */
         header.eco-nav {
             position: absolute;
-            top: 16px;
-            left: 16px;
-            right: 16px;
+            top: 14px;
+            left: 14px;
+            right: 14px;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .nav-row-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            pointer-events: none;
+            width: 100%;
         }
 
         .nav-island {
@@ -131,15 +148,15 @@
         }
 
         .brand-badge {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             border-radius: 10px;
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35);
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
         }
 
         .brand-title {
@@ -167,18 +184,18 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
-            padding: 8px 14px;
+            padding: 6px 12px;
             box-shadow: var(--shadow-md);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             font-size: 12px;
             backdrop-filter: blur(8px);
         }
 
         .kpi-icon-wrap {
-            width: 28px;
-            height: 28px;
+            width: 26px;
+            height: 26px;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -187,13 +204,13 @@
         }
 
         .kpi-chip .num {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             line-height: 1;
         }
 
         .kpi-chip .lbl {
-            font-size: 10px;
+            font-size: 9.5px;
             color: var(--text-muted);
             text-transform: uppercase;
             font-weight: 600;
@@ -214,8 +231,8 @@
         }
 
         .btn-icon {
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             border-radius: var(--radius-md);
             border: 1px solid var(--border);
             background: var(--surface-subtle);
@@ -248,24 +265,61 @@
             height: 8px;
             border-radius: 50%;
             background: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+        }
+
+        /* Fila 2: Filtros de Barrio & Turnos */
+        .nav-row-filters {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .filters-island {
+            pointer-events: auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 6px 10px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-barrio-input {
+            padding: 6px 10px 6px 30px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--surface-subtle);
+            color: var(--text-main);
+            font-size: 12px;
+            width: 200px;
+            outline: none;
+            transition: all 0.15s ease;
+        }
+
+        .search-barrio-input:focus {
+            border-color: #10b981;
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+            background: var(--surface);
         }
 
-        /* Full Screen Map Container */
-        #map {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 10;
+        .select-filter-top {
+            padding: 6px 10px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--surface-subtle);
+            color: var(--text-main);
+            font-size: 12px;
+            outline: none;
+            cursor: pointer;
         }
 
-        html.dark #map .leaflet-tile-pane {
-            filter: var(--map-filter);
-        }
-
-        /* Floating Actions Bottom Center / Right */
+        /* Floating Actions Bottom Center */
         .floating-action-bar {
             position: absolute;
             bottom: 24px;
@@ -282,14 +336,14 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 24px;
+            padding: 13px 24px;
             border-radius: var(--radius-full);
-            background: #09090b;
+            background: #0f172a;
             color: #ffffff;
             font-weight: 600;
-            font-size: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            font-size: 13.5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -303,19 +357,19 @@
 
         .btn-action-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 14px 30px -5px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 14px 28px -5px rgba(0, 0, 0, 0.45);
         }
 
         .btn-action-secondary {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 14px 20px;
+            padding: 13px 20px;
             border-radius: var(--radius-full);
             background: var(--surface);
             color: var(--text-main);
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13.5px;
             border: 1px solid var(--border);
             box-shadow: var(--shadow-lg);
             cursor: pointer;
@@ -363,11 +417,140 @@
             font-weight: 700;
         }
 
+        /* Leyenda Flotante Oficial (Esquina inferior izquierda) */
+        .legend-card {
+            position: absolute;
+            bottom: 84px;
+            left: 20px;
+            z-index: 1000;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 11.5px;
+            max-width: 250px;
+            backdrop-filter: blur(10px);
+        }
+
+        .legend-title {
+            font-weight: 700;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
+        }
+
+        /* Tarjeta Flotante "Mi Barrio" (Detalle al hacer clic en el mapa) */
+        .barrio-info-card {
+            position: absolute;
+            bottom: 24px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-xl);
+            width: 340px;
+            max-width: calc(100vw - 40px);
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(14px);
+            animation: slideUpFade 0.25s ease-out;
+        }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .barrio-info-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .barrio-badge-turno {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .turno-manana { background: rgba(34, 197, 94, 0.15); color: #15803d; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .turno-tarde { background: rgba(249, 115, 22, 0.15); color: #c2410c; border: 1px solid rgba(249, 115, 22, 0.3); }
+        .turno-noche { background: rgba(71, 85, 105, 0.15); color: #334155; border: 1px solid rgba(71, 85, 105, 0.3); }
+
+        html.dark .turno-manana { color: #4ade80; }
+        html.dark .turno-tarde { color: #fb923c; }
+        html.dark .turno-noche { color: #94a3b8; }
+
+        .btn-report-barrio {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 9px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 3px 8px rgba(239, 68, 68, 0.35);
+            transition: all 0.15s ease;
+        }
+
+        .btn-report-barrio:hover {
+            background: #dc2626;
+        }
+
+        /* Tooltip de Barrio sobre el mapa */
+        .barrio-map-label {
+            background: rgba(15, 23, 42, 0.85) !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-radius: 6px !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            padding: 3px 7px !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+        }
+
         /* Left Side Reports Drawer */
         .drawer-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.35);
             backdrop-filter: blur(4px);
             z-index: 1100;
             opacity: 0;
@@ -485,7 +668,7 @@
 
         .tag-pill.active {
             background: var(--accent);
-            color: var(--bg-base);
+            color: var(--surface);
             border-color: var(--accent);
         }
 
@@ -578,12 +761,12 @@
             color: var(--text-subtle);
         }
 
-        /* Modal Styles (Nuevo Reporte & Consultar Ticket) */
+        /* Modal Styles */
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(6px);
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
             z-index: 1500;
             display: flex;
             align-items: center;
@@ -840,59 +1023,33 @@
             user-select: all;
         }
 
-        /* Popup Styles on Map */
-        .leaflet-popup-content-wrapper {
-            background: var(--surface) !important;
-            color: var(--text-main) !important;
-            border-radius: 14px !important;
-            border: 1px solid var(--border) !important;
-            box-shadow: var(--shadow-xl) !important;
-            padding: 0 !important;
-            overflow: hidden;
-        }
-
-        .leaflet-popup-content {
-            margin: 0 !important;
-            line-height: 1.4 !important;
-        }
-
-        .leaflet-popup-tip {
-            background: var(--surface) !important;
-            border: 1px solid var(--border) !important;
-        }
-
-        .custom-popup {
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            min-width: 200px;
-            max-width: 260px;
-        }
-
         /* Responsive Breakpoints */
-        @media (max-width: 820px) {
+        @media (max-width: 900px) {
             .kpi-container {
                 display: none;
             }
-            .brand-subtitle {
+            .nav-row-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filters-island {
+                flex-wrap: wrap;
+            }
+            .search-barrio-input {
+                width: 100%;
+            }
+            .legend-card {
                 display: none;
-            }
-            .floating-action-bar {
-                bottom: 18px;
-                width: calc(100% - 32px);
-                justify-content: center;
-            }
-            .btn-action-primary {
-                flex: 1;
-                justify-content: center;
-            }
-            .btn-action-secondary {
-                padding: 14px 14px;
             }
             .btn-drawer-float {
                 bottom: 84px;
                 left: 16px;
+            }
+            .barrio-info-card {
+                bottom: 84px;
+                right: 16px;
+                left: 16px;
+                width: auto;
             }
         }
     </style>
@@ -904,89 +1061,173 @@
 
     <!-- Top Floating Header -->
     <header class="eco-nav">
-        <div class="nav-island">
-            <a href="ciudadano.html" class="brand-group">
-                <div class="brand-badge">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
-                        <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+        <div class="nav-row-top">
+            <div class="nav-island">
+                <a href="ciudadano.html" class="brand-group">
+                    <div class="brand-badge">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+                            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="brand-title">EcoRuta</div>
+                        <div class="brand-subtitle">Recolección Asunción</div>
+                    </div>
+                </a>
+
+                <!-- KPI Metric Bar -->
+                <div class="kpi-container">
+                    <div class="kpi-chip">
+                        <div class="kpi-icon-wrap" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <div>
+                            <div class="num" id="kpiActivas">0</div>
+                            <div class="lbl">Activas</div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-chip">
+                        <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+                        </div>
+                        <div>
+                            <div class="num" id="kpiCamiones">4</div>
+                            <div class="lbl">Camiones</div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-chip">
+                        <div class="kpi-icon-wrap" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <div>
+                            <div class="num" id="kpiResueltas">0</div>
+                            <div class="lbl">Resueltas</div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-chip">
+                        <div class="kpi-icon-wrap" style="background: rgba(168, 85, 247, 0.12); color: #a855f7;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        </div>
+                        <div>
+                            <div class="num" id="kpiBarriosCount">68</div>
+                            <div class="lbl">Barrios</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Controls -->
+            <div class="controls-island">
+                <div class="user-tag">
+                    <span class="user-avatar-dot"></span>
+                    <span id="navUsername">Ciudadano</span>
+                </div>
+
+                <!-- Dark / Light Mode Toggle -->
+                <button class="btn-icon" id="themeToggleBtn" title="Alternar tema (Claro / Oscuro)">
+                    <svg id="themeIconSun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                        <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
                     </svg>
-                </div>
-                <div>
-                    <div class="brand-title">EcoRuta</div>
-                    <div class="brand-subtitle">Recolección Asunción</div>
-                </div>
-            </a>
+                    <svg id="themeIconMoon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+                    </svg>
+                </button>
 
-            <!-- KPI Metric Bar -->
-            <div class="kpi-container">
-                <div class="kpi-chip">
-                    <div class="kpi-icon-wrap" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    </div>
-                    <div>
-                        <div class="num" id="kpiActivas">0</div>
-                        <div class="lbl">Activas</div>
-                    </div>
-                </div>
-
-                <div class="kpi-chip">
-                    <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-                    </div>
-                    <div>
-                        <div class="num" id="kpiCamiones">4</div>
-                        <div class="lbl">Camiones</div>
-                    </div>
-                </div>
-
-                <div class="kpi-chip">
-                    <div class="kpi-icon-wrap" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    </div>
-                    <div>
-                        <div class="num" id="kpiResueltas">0</div>
-                        <div class="lbl">Resueltas</div>
-                    </div>
-                </div>
-
-                <div class="kpi-chip">
-                    <div class="kpi-icon-wrap" style="background: rgba(168, 85, 247, 0.12); color: #a855f7;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                    </div>
-                    <div>
-                        <div class="num">68</div>
-                        <div class="lbl">Barrios</div>
-                    </div>
-                </div>
+                <!-- Logout -->
+                <button class="btn-icon" onclick="logout()" title="Cerrar sesión" style="color: #ef4444;">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </button>
             </div>
         </div>
 
-        <!-- Right Controls -->
-        <div class="controls-island">
-            <div class="user-tag">
-                <span class="user-avatar-dot"></span>
-                <span id="navUsername">Ciudadano</span>
+        <!-- Fila 2: Filtros Barriales & Cronogramas Oficiales -->
+        <div class="nav-row-filters">
+            <div class="filters-island">
+                <div style="position:relative; display:flex; align-items:center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute; left:10px; color:var(--text-subtle);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="inputSearchMapBarrio" class="search-barrio-input" placeholder="Buscar barrio en el mapa...">
+                </div>
+
+                <select id="selectFrecuenciaFilter" class="select-filter-top">
+                    <option value="ALL">Todos los Días</option>
+                    <option value="LUNES_MIERCOLES_VIERNES">Lunes, Miércoles y Viernes</option>
+                    <option value="MARTES_JUEVES_SABADO">Martes, Jueves y Sábado</option>
+                </select>
+
+                <select id="selectTurnoFilter" class="select-filter-top">
+                    <option value="ALL">Todos los Turnos</option>
+                    <option value="Mañana">Mañana (06:00 - 12:00)</option>
+                    <option value="Tarde">Tarde (12:00 - 18:00)</option>
+                    <option value="Noche">Noche (19:00 - 02:00)</option>
+                </select>
             </div>
-
-            <!-- Dark / Light Mode Toggle -->
-            <button class="btn-icon" id="themeToggleBtn" title="Cambiar tema (Claro / Oscuro)">
-                <svg id="themeIconSun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
-                    <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
-                </svg>
-                <svg id="themeIconMoon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-                </svg>
-            </button>
-
-            <!-- Logout -->
-            <button class="btn-icon" onclick="logout()" title="Cerrar sesión" style="color: #ef4444;">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-            </button>
         </div>
     </header>
+
+    <!-- Leyenda Flotante de Turnos Oficiales (Izquierda Abajo) -->
+    <div class="legend-card">
+        <div class="legend-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            <span>Turnos de Recolección</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color-dot" style="background: #22c55e;"></span>
+            <div><strong>Turno Mañana</strong> (06:00 a 12:00)</div>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color-dot" style="background: #f97316;"></span>
+            <div><strong>Turno Tarde</strong> (12:00 a 18:00)</div>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color-dot" style="background: #475569;"></span>
+            <div><strong>Turno Noche</strong> (19:00 a 02:00)</div>
+        </div>
+    </div>
+
+    <!-- Tarjeta Flotante "Mi Barrio" (Aparece al hacer click en cualquier polígono) -->
+    <div class="barrio-info-card" id="barrioInfoCard">
+        <div class="barrio-info-head">
+            <div>
+                <span id="bCardZona" style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Zona</span>
+                <h3 id="bCardNombre" style="font-size:16px; font-weight:800; color:var(--text-main); margin-top:1px;">Barrio</h3>
+            </div>
+            <button class="btn-icon" onclick="closeBarrioCard()" style="width:28px; height:28px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Turno Oficial:</span>
+                <span id="bCardBadgeTurno" class="barrio-badge-turno turno-manana">Mañana</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Horario:</span>
+                <strong id="bCardHorario">06:00 a 12:00 hs</strong>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="color:var(--text-muted);">Días:</span>
+                <strong id="bCardFrecuencia">Martes, Jueves y Sábado</strong>
+            </div>
+            <div id="bCardProxima" style="background:var(--surface-subtle); padding:7px 10px; border-radius:8px; font-size:11.5px; border:1px solid var(--border);">
+                Próxima recolección: Hoy
+            </div>
+            <div id="bCardCalles" style="font-size:11px; color:var(--text-muted); line-height:1.35;">
+                Av. España, Av. Mcal. López
+            </div>
+        </div>
+
+        <button class="btn-report-barrio" id="btnReportThisBarrio" onclick="reportInSelectedBarrio()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            <span id="btnReportThisBarrioLbl">Reportar en este Barrio</span>
+        </button>
+    </div>
 
     <!-- Drawer Trigger (Floating Left) -->
     <button class="btn-drawer-float" id="openDrawerBtn">
@@ -1044,7 +1285,6 @@
         </div>
 
         <div class="drawer-list-content" id="drawerList">
-            <!-- Rendered list items -->
             <div style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px;">
                 Cargando denuncias...
             </div>
@@ -1138,7 +1378,7 @@
                                 <span>Mi GPS</span>
                             </button>
                         </div>
-                        <span style="font-size:11px; color:var(--text-subtle);">Haz clic en el mapa de fondo para reubicar el pin exacto si lo deseas.</span>
+                        <span style="font-size:11px; color:var(--text-subtle);">Haz clic en el mapa de fondo para mover el pin si lo necesitas.</span>
                         <input type="hidden" id="fLat" value="-25.2867">
                         <input type="hidden" id="fLng" value="-57.6333">
                     </div>
@@ -1163,7 +1403,7 @@
 
                 </div>
 
-                <!-- Success Box (Hidden by default) -->
+                <!-- Success Box -->
                 <div class="modal-body" id="modalReportSuccessBody" style="display:none;">
                     <div class="ticket-success-box">
                         <div style="width:48px; height:48px; border-radius:50%; background:#10b981; color:white; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
@@ -1214,9 +1454,7 @@
                     </div>
                 </div>
 
-                <div id="ticketResultBox" style="display:none; margin-top:8px;">
-                    <!-- Ticket Details will load here -->
-                </div>
+                <div id="ticketResultBox" style="display:none; margin-top:8px;"></div>
             </div>
 
             <div class="modal-foot">
@@ -1230,73 +1468,71 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
     <script>
-        // Barrios de Asunción
-        const BARRIOS_ASUNCION = [
-            "Banco San Miguel", "Bahedo", "Bella Vista", "Botánico", "Cañada del Ybyray", "Carmelitas",
-            "Catedral", "Ciudad Nueva", "Dr. Francia", "Encarnación", "General Bernardino Caballero",
-            "General Díaz", "Hipódromo", "Herrera", "Itá Enramada", "Itá Pytã Punta", "Jara",
-            "La Encarnación", "Las Lomas", "Las Mercedes", "Los Laureles", "Loma Pytã", "Madame Lynch",
-            "Manorá", "Mariscal Estigarribia", "Mariscal López", "Mburicaó", "Mburucuyá", "Mbocayaty",
-            "Nazareth", "Obrero", "Panambí Retã", "Panambí Verá", "Pettirossi", "Pinozá", "Pirizal",
-            "Recoleta", "Republicano", "Ricardo Brugada (Chacarita)", "Rincón del Peñón", "Robles",
-            "Sajonia", "San Antonio", "San Blas", "San Cristóbal", "San Felipe", "San Jorge",
-            "San Pablo", "San Roque", "San Vicente", "Santa Ana", "Santa Librada", "Santa María",
-            "Santa Rosa", "Santísima Trinidad", "Silvio Pettirossi", "Tablada Nueva", "Tacumbú",
-            "Tembetary", "Terminal", "Trinidad", "Villa Aurelia", "Villa Morra", "Virgen de la Asunción",
-            "Virgen del Huerto", "Vista Alegre", "Ykua Satî", "Zeballos Cué"
-        ];
-
         // Global State
         let map;
+        let baseTileLayer;
+        let geojsonLayer;
         let reportsCluster;
         let trucksLayer;
         let currentMarker = null;
         let allReports = [];
-        let filteredReports = [];
         let currentFilter = "TODAS";
+        let activeSelectedBarrio = null;
         const API_BASE = '/api';
 
         // Set User Name
         const storedUser = localStorage.getItem('ecoruta_usuario') || localStorage.getItem('nexo_usuario') || 'Ciudadano';
         document.getElementById('navUsername').textContent = storedUser;
 
-        // Theme management
+        // Theme management (Clean theme by default, NO dark invert filter)
         function initTheme() {
-            const savedTheme = localStorage.getItem('ecoruta_theme') || 'dark';
-            if (savedTheme === 'light') {
-                document.documentElement.classList.remove('dark');
-                document.getElementById('themeIconSun').style.display = 'block';
-                document.getElementById('themeIconMoon').style.display = 'none';
-            } else {
+            const savedTheme = localStorage.getItem('ecoruta_theme') || 'light';
+            applyTheme(savedTheme);
+        }
+
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            if (isDark) {
                 document.documentElement.classList.add('dark');
                 document.getElementById('themeIconSun').style.display = 'none';
                 document.getElementById('themeIconMoon').style.display = 'block';
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeIconSun').style.display = 'block';
+                document.getElementById('themeIconMoon').style.display = 'none';
+            }
+
+            // Update Map Base Tiles according to theme (Clean & crisp)
+            if (map) {
+                if (baseTileLayer) map.removeLayer(baseTileLayer);
+                
+                const tileUrl = isDark
+                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+                baseTileLayer = L.tileLayer(tileUrl, {
+                    attribution: '&copy; OpenStreetMap, &copy; CARTO',
+                    maxZoom: 19
+                }).addTo(map);
             }
         }
 
         document.getElementById('themeToggleBtn').addEventListener('click', () => {
-            const isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('ecoruta_theme', isDark ? 'dark' : 'light');
-            document.getElementById('themeIconSun').style.display = isDark ? 'none' : 'block';
-            document.getElementById('themeIconMoon').style.display = isDark ? 'block' : 'none';
+            const isDark = document.documentElement.classList.contains('dark');
+            const newTheme = isDark ? 'light' : 'dark';
+            localStorage.setItem('ecoruta_theme', newTheme);
+            applyTheme(newTheme);
         });
-
-        // Initialize Barrios Datalist
-        function populateBarrios() {
-            const datalist = document.getElementById('barriosList');
-            datalist.innerHTML = '';
-            BARRIOS_ASUNCION.forEach(b => {
-                const opt = document.createElement('option');
-                opt.value = b;
-                datalist.appendChild(opt);
-            });
-        }
 
         // Initialize Leaflet Map
         function initMap() {
-            // Asunción Center Coordinates
+            const isDark = document.documentElement.classList.contains('dark');
+            const tileUrl = isDark
+                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
             map = L.map('map', {
-                center: [-25.2867, -57.6333],
+                center: [-25.2950, -57.6050],
                 zoom: 13,
                 zoomControl: false
             });
@@ -1304,28 +1540,218 @@
             // Zoom control on top right
             L.control.zoom({ position: 'topright' }).addTo(map);
 
-            // Esri Gray Canvas Base Tiles (Sleek minimalist monochrome style)
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '&copy; Esri, HERE, Garmin, OpenStreetMap',
-                maxZoom: 16
+            baseTileLayer = L.tileLayer(tileUrl, {
+                attribution: '&copy; OpenStreetMap, &copy; CARTO',
+                maxZoom: 19
             }).addTo(map);
 
+            // Capa GeoJSON Vectorial de Barrios
+            loadBarriosGeoJSON();
+
+            // Capa de Clusters de Denuncias
             reportsCluster = L.markerClusterGroup({
                 showCoverageOnHover: false,
                 maxClusterRadius: 40
             });
             map.addLayer(reportsCluster);
 
+            // Capa de Camiones en Ruta
             trucksLayer = L.layerGroup().addTo(map);
 
-            // Map Click sets new report coordinate
+            // Click en mapa para seleccionar coordenada
             map.on('click', (e) => {
                 const { lat, lng } = e.latlng;
                 setFormCoordinates(lat, lng);
             });
 
-            // Add simulated / active collection trucks
             renderTrucks();
+        }
+
+        // Obtener color del barrio según turno oficial
+        function getTurnoColor(turno) {
+            const t = (turno || '').toLowerCase();
+            if (t.includes('mañana') || t.includes('manana')) return '#22c55e'; // Verde natural
+            if (t.includes('tarde')) return '#f97316'; // Naranja
+            if (t.includes('noche')) return '#475569'; // Pizarra / Slate
+            return '#94a3b8'; // Neutro
+        }
+
+        // Cargar y estilizar la capa GeoJSON de Barrios
+        function loadBarriosGeoJSON() {
+            const geojson = window.BARRIOS_ASUNCION_GEOJSON;
+            if (!geojson || !geojson.features) {
+                console.warn('GeoJSON de barrios no cargado');
+                return;
+            }
+
+            document.getElementById('kpiBarriosCount').textContent = geojson.features.length;
+            populateBarriosDatalist(geojson.features);
+
+            geojsonLayer = L.geoJSON(geojson, {
+                style: getFeatureStyle,
+                onEachFeature: onEachBarrioFeature
+            }).addTo(map);
+        }
+
+        function getFeatureStyle(feature) {
+            const props = feature.properties || {};
+            const turno = props.turno || 'Mañana';
+            const freqCode = props.frecuencia_codigo || 'MARTES_JUEVES_SABADO';
+            const name = (props.barrio || '').toLowerCase();
+
+            // Evaluar filtros
+            const filterFreq = document.getElementById('selectFrecuenciaFilter').value;
+            const filterTurno = document.getElementById('selectTurnoFilter').value;
+            const searchQ = (document.getElementById('inputSearchMapBarrio').value || '').toLowerCase().trim();
+
+            let matched = true;
+            if (filterFreq !== 'ALL' && freqCode !== filterFreq) matched = false;
+            if (filterTurno !== 'ALL' && !turno.toLowerCase().includes(filterTurno.toLowerCase())) matched = false;
+            if (searchQ && !name.includes(searchQ)) matched = false;
+
+            const isSelected = activeSelectedBarrio && activeSelectedBarrio.id === feature.id;
+            const baseColor = getTurnoColor(turno);
+
+            return {
+                color: isSelected ? '#0f172a' : '#ffffff',
+                weight: isSelected ? 3 : 1.5,
+                opacity: 1,
+                fillColor: matched ? baseColor : '#cbd5e1',
+                fillOpacity: isSelected ? 0.8 : (matched ? 0.55 : 0.15)
+            };
+        }
+
+        function onEachBarrioFeature(feature, layer) {
+            const props = feature.properties || {};
+            const barrioNombre = props.barrio || 'Barrio';
+
+            // Tooltip flotante centrado con el nombre
+            layer.bindTooltip(barrioNombre, {
+                permanent: false,
+                direction: 'center',
+                className: 'barrio-map-label'
+            });
+
+            layer.on({
+                mouseover: (e) => {
+                    const l = e.target;
+                    l.setStyle({
+                        weight: 2.5,
+                        color: '#0f172a',
+                        fillOpacity: 0.75
+                    });
+                },
+                mouseout: (e) => {
+                    if (geojsonLayer) {
+                        geojsonLayer.resetStyle(e.target);
+                    }
+                },
+                click: (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    selectBarrioFeature(feature, e.latlng);
+                }
+            });
+        }
+
+        function selectBarrioFeature(feature, latlng) {
+            activeSelectedBarrio = feature;
+            if (geojsonLayer) geojsonLayer.setStyle(getFeatureStyle);
+
+            const props = feature.properties || {};
+            showBarrioInfoCard(props);
+
+            if (latlng) {
+                map.flyTo([latlng.lat, latlng.lng], 14, { duration: 0.8 });
+                setFormCoordinates(latlng.lat, latlng.lng);
+            }
+        }
+
+        // Mostrar tarjeta flotante de detalle de barrio
+        function showBarrioInfoCard(props) {
+            const card = document.getElementById('barrioInfoCard');
+            document.getElementById('bCardZona').textContent = props.zona || 'Asunción';
+            document.getElementById('bCardNombre').textContent = props.barrio || 'Barrio';
+
+            const turno = props.turno || 'Mañana';
+            const badge = document.getElementById('bCardBadgeTurno');
+            badge.textContent = turno;
+            badge.className = 'barrio-badge-turno ' + (
+                turno.toLowerCase().includes('mañana') ? 'turno-manana' :
+                turno.toLowerCase().includes('tarde') ? 'turno-tarde' : 'turno-noche'
+            );
+
+            document.getElementById('bCardHorario').textContent = props.horario || '06:00 a 12:00 hs';
+            document.getElementById('bCardFrecuencia').textContent = props.frecuencia || 'Lunes, Miércoles y Viernes';
+            document.getElementById('bCardCalles').innerHTML = `<strong>Calles principales:</strong> ${props.calles_principales || 'Zona barrial'}`;
+            
+            // Cálculo dinámico de próxima recolección
+            const prox = calcProximaRecoleccion(props);
+            document.getElementById('bCardProxima').innerHTML = prox;
+
+            document.getElementById('btnReportThisBarrioLbl').textContent = `Reportar en ${props.barrio}`;
+            card.style.display = 'flex';
+        }
+
+        function closeBarrioCard() {
+            document.getElementById('barrioInfoCard').style.display = 'none';
+            activeSelectedBarrio = null;
+            if (geojsonLayer) geojsonLayer.setStyle(getFeatureStyle);
+        }
+
+        function reportInSelectedBarrio() {
+            if (!activeSelectedBarrio) return;
+            const props = activeSelectedBarrio.properties || {};
+            document.getElementById('fBarrio').value = props.barrio || '';
+            openModal('modalNewReport');
+        }
+
+        function calcProximaRecoleccion(props) {
+            const now = new Date();
+            const currentDay = now.getDay(); // 0: Dom, 1: Lun, 2: Mar, 3: Mié, 4: Jue, 5: Vie, 6: Sáb
+            const freq = props.frecuencia_codigo || '';
+            const validDays = freq === 'MARTES_JUEVES_SABADO' ? [2, 4, 6] : [1, 3, 5];
+            const isToday = validDays.includes(currentDay);
+
+            if (isToday) {
+                return `🟢 <strong>Hoy corresponde recolección</strong> (${props.horario || 'Horario oficial'})`;
+            }
+            return `📅 <strong>Próximo servicio:</strong> ${props.frecuencia} (${props.horario || 'Horario oficial'})`;
+        }
+
+        // Filtros reactivos de la barra superior
+        document.getElementById('selectFrecuenciaFilter').addEventListener('change', () => {
+            if (geojsonLayer) geojsonLayer.setStyle(getFeatureStyle);
+        });
+
+        document.getElementById('selectTurnoFilter').addEventListener('change', () => {
+            if (geojsonLayer) geojsonLayer.setStyle(getFeatureStyle);
+        });
+
+        document.getElementById('inputSearchMapBarrio').addEventListener('input', (e) => {
+            if (geojsonLayer) geojsonLayer.setStyle(getFeatureStyle);
+            const q = e.target.value.toLowerCase().trim();
+            if (q.length > 2 && window.BARRIOS_ASUNCION_GEOJSON) {
+                const found = window.BARRIOS_ASUNCION_GEOJSON.features.find(f => 
+                    (f.properties?.barrio || '').toLowerCase().includes(q)
+                );
+                if (found && found.geometry?.coordinates) {
+                    // Zoom hacia el primer polígono coincidente
+                    const coords = found.geometry.coordinates[0][0];
+                    map.flyTo([coords[1], coords[0]], 14, { duration: 0.8 });
+                    showBarrioInfoCard(found.properties);
+                }
+            }
+        });
+
+        // Población del datalist para el formulario
+        function populateBarriosDatalist(features) {
+            const datalist = document.getElementById('barriosList');
+            datalist.innerHTML = '';
+            features.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.properties.barrio;
+                datalist.appendChild(opt);
+            });
         }
 
         function setFormCoordinates(lat, lng) {
@@ -1361,23 +1787,20 @@
                 const truckIcon = L.divIcon({
                     className: 'truck-pin',
                     html: `
-                        <div style="background:#10b981; color:white; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(16,185,129,0.5); border:2px solid white;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+                        <div style="background:#111827; color:white; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.3); border:2px solid white;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
                         </div>
                     `,
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
                 });
 
                 const marker = L.marker([t.lat, t.lng], { icon: truckIcon });
                 marker.bindPopup(`
-                    <div class="custom-popup">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span class="badge-status st-en_proceso">Camión Activo</span>
-                            <span style="font-size:11px; font-weight:700;">${t.id}</span>
-                        </div>
-                        <div style="font-weight:700; font-size:13px;">${t.barrio}</div>
-                        <div style="font-size:11px; color:var(--text-muted);">Chofer: ${t.chofer}</div>
+                    <div style="padding:10px; font-size:12px;">
+                        <div style="font-weight:700; margin-bottom:4px;">Camión ${t.id}</div>
+                        <div>Barrio: <strong>${t.barrio}</strong></div>
+                        <div style="color:var(--text-muted);">Chofer: ${t.chofer}</div>
                     </div>
                 `);
                 trucksLayer.addLayer(marker);
@@ -1399,7 +1822,7 @@
                     allReports = getFallbackReports();
                 }
             } catch (err) {
-                console.warn('API /denuncias unreachable, using local data:', err);
+                console.warn('API /denuncias unreachable, using local fallback:', err);
                 allReports = getFallbackReports();
             }
 
@@ -1413,11 +1836,10 @@
                 { id: 101, ticket: 'ECO-9281', categoria: 'VERTEDERO_CLANDESTINO', barrio: 'Sajonia', descripcion: 'Basura acumulada en la esquina del parque, proliferación de alimañas.', latitud: -25.2915, longitud: -57.6410, estado: 'PENDIENTE', fecha_creacion: '2026-10-12T14:30:00' },
                 { id: 102, ticket: 'ECO-8419', categoria: 'RECOLECCION_PENDIENTE', barrio: 'Recoleta', descripcion: 'Hace 3 días no pasa el camión por la cuadra.', latitud: -25.2995, longitud: -57.6012, estado: 'EN_PROCESO', fecha_creacion: '2026-10-11T10:15:00' },
                 { id: 103, ticket: 'ECO-7732', categoria: 'CONTENEDOR_DANADO', barrio: 'Las Mercedes', descripcion: 'Contenedor metálico roto sin tapa sobre Juan de Salazar.', latitud: -25.2810, longitud: -57.6180, estado: 'PENDIENTE', fecha_creacion: '2026-10-10T08:45:00' },
-                { id: 104, ticket: 'ECO-6102', categoria: 'VERTEDERO_CLANDESTINO', barrio: 'Trinidad', descripcion: 'Restos de ramas y escombros en la vereda.', latitud: -25.2710, longitud: -57.5840, estado: 'CERRADA', fecha_creacion: '2026-10-09T16:20:00' }
+                { id: 104, ticket: 'ECO-6102', categoria: 'VERTEDERO_CLANDESTINO', barrio: 'Santísima Trinidad', descripcion: 'Restos de ramas y escombros en la vereda.', latitud: -25.2710, longitud: -57.5840, estado: 'CERRADA', fecha_creacion: '2026-10-09T16:20:00' }
             ];
         }
 
-        // Update KPI Chips
         function updateKpis() {
             const activas = allReports.filter(r => (r.estado || 'PENDIENTE').toUpperCase() !== 'CERRADA').length;
             const resueltas = allReports.filter(r => (r.estado || '').toUpperCase() === 'CERRADA' || (r.estado || '').toUpperCase() === 'RESUELTA').length;
@@ -1427,7 +1849,6 @@
             document.getElementById('drawerCountBadge').textContent = activas;
         }
 
-        // Render Markers on Map
         function renderReportsOnMap() {
             reportsCluster.clearLayers();
 
@@ -1437,16 +1858,13 @@
                 if (isNaN(lat) || isNaN(lng)) return;
 
                 const st = (rep.estado || 'PENDIENTE').toUpperCase();
-                let color = '#f59e0b'; // Pendiente
-                if (st === 'EN_PROCESO') color = '#3b82f6';
-                if (st === 'CERRADA' || st === 'RESUELTA') color = '#10b981';
-                if (st === 'RECHAZADA') color = '#ef4444';
+                let color = '#ef4444'; // Rojo alerta
 
                 const markerIcon = L.divIcon({
                     className: 'report-pin',
                     html: `
-                        <div style="background:${color}; color:white; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid white;">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                        <div style="background:${color}; color:white; width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid white;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                         </div>
                     `,
                     iconSize: [26, 26],
@@ -1455,14 +1873,14 @@
 
                 const m = L.marker([lat, lng], { icon: markerIcon });
                 m.bindPopup(`
-                    <div class="custom-popup">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="padding:10px; font-size:12px; max-width:240px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                             <span class="badge-status st-${st.toLowerCase()}">${st.replace('_', ' ')}</span>
                             <span style="font-family:monospace; font-size:10px; color:var(--text-subtle);">${rep.ticket || 'TKT'}</span>
                         </div>
                         <div style="font-weight:700; font-size:13px; margin-top:2px;">${escapeHtml(rep.barrio || 'Asunción')}</div>
-                        <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(rep.descripcion || '')}</div>
-                        ${rep.direccion_referencia ? `<div style="font-size:11px; color:var(--text-subtle);">📍 ${escapeHtml(rep.direccion_referencia)}</div>` : ''}
+                        <div style="color:var(--text-muted); margin-top:3px;">${escapeHtml(rep.descripcion || '')}</div>
+                        ${rep.direccion_referencia ? `<div style="font-size:11px; color:var(--text-subtle); margin-top:4px;">📍 ${escapeHtml(rep.direccion_referencia)}</div>` : ''}
                     </div>
                 `);
 
@@ -1518,7 +1936,7 @@
                         </div>
                         <div class="report-card-desc">${escapeHtml(item.descripcion || 'Sin descripción')}</div>
                         <div class="report-card-footer">
-                            <span>${escapeHtml(item.categoria ? item.categoria.replace('_', ' ') : 'General')}</span>
+                            <span>${escapeHtml(item.categoria ? item.categoria.replace(/_/g, ' ') : 'General')}</span>
                             <span>${formatDate(item.fecha_creacion || item.fecha)}</span>
                         </div>
                     </div>
@@ -1564,7 +1982,7 @@
                     { enableHighAccuracy: true, timeout: 8000 }
                 );
             } else {
-                alert('La geolocalización no está soportada en tu navegador.');
+                alert('La geolocalización no está disponible en este navegador.');
             }
         });
 
@@ -1605,10 +2023,9 @@
                     if (resData.ticket) newTicket = resData.ticket;
                 }
             } catch (err) {
-                console.warn('Backend POST /denuncias failed, simulating local creation:', err);
+                console.warn('Backend POST /denuncias unreachable, creating local fallback:', err);
             }
 
-            // Push locally
             payload.id = Date.now();
             payload.ticket = newTicket;
             payload.estado = 'PENDIENTE';
@@ -1625,7 +2042,6 @@
             document.getElementById('createdTicketCode').textContent = newTicket;
             submitBtn.style.display = 'none';
 
-            // Reset form for next time
             document.getElementById('formReport').reset();
         }
 
@@ -1646,7 +2062,7 @@
 
             const resultBox = document.getElementById('ticketResultBox');
             resultBox.style.display = 'block';
-            resultBox.innerHTML = `<div style="font-size:12px; color:var(--text-muted);">Buscando estado del ticket ${escapeHtml(code)}...</div>`;
+            resultBox.innerHTML = `<div style="font-size:12px; color:var(--text-muted);">Buscando ticket ${escapeHtml(code)}...</div>`;
 
             let found = allReports.find(r => (r.ticket || '').toUpperCase() === code);
 
@@ -1741,12 +2157,13 @@
         document.getElementById('openNewReportBtn').addEventListener('click', () => openModal('modalNewReport'));
         document.getElementById('openCheckTicketBtn').addEventListener('click', () => openModal('modalCheckTicket'));
 
-        // Escape key to close modals
+        // Escape key to close
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal('modalNewReport');
                 closeModal('modalCheckTicket');
                 closeDrawer();
+                closeBarrioCard();
             }
         });
 
@@ -1761,7 +2178,6 @@
             window.location.href = 'login1.html';
         }
 
-        // Utils
         function escapeHtml(str) {
             if (!str) return '';
             return String(str)
@@ -1785,7 +2201,6 @@
         // Bootstrap on DOM Ready
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
-            populateBarrios();
             initMap();
             loadReports();
         });
