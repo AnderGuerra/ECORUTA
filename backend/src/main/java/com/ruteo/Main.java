@@ -86,12 +86,12 @@ public class Main {
                     
                     if (!userInfo.isEmpty() && userInfo.contains(":")) {
                         String[] parts = userInfo.split(":", 2);
-                        DB_USER = parts[0];
-                        DB_PASSWORD = parts[1];
+                        DB_USER = java.net.URLDecoder.decode(parts[0], java.nio.charset.StandardCharsets.UTF_8);
+                        DB_PASSWORD = java.net.URLDecoder.decode(parts[1], java.nio.charset.StandardCharsets.UTF_8);
                     }
                     
                     DB_URL = "jdbc:postgresql://" + hostPortDb;
-                    System.out.println("✅ DATABASE_URL parseada correctamente.");
+                    System.out.println("✅ DATABASE_URL parseada correctamente (sslmode conservado si viene en la URL).");
                 } else {
                     DB_URL = dbUrlEnv;
                 }

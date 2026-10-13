@@ -11,3 +11,6 @@ backend/target/classes/
 # OS
 Thumbs.db
 .DS_Store
+
+# Respaldos de BD (datos sensibles)
+database/dumps/

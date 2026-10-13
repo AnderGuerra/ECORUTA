@@ -1,7 +1,8 @@
-# EcoRuta unificado — deploy en Render (app + postgres)
+# EcoRuta unificado — deploy en Render (SOLO la app web)
+# La base de datos vive en Aiven (free, 5 GB, sin expiración) — ver MIGRACION_AIVEN.md
 # Conectar este repo (Zelaya02/Ecoruta) en Render → New → Blueprint → selecciona este archivo.
-# El backend Java lee DATABASE_URL automáticamente (Main.parseDatabaseUrl) y crea
-# el esquema + tabla denuncias + usuarios por rol al arrancar.
+# IMPORTANTE: después del Blueprint, ve a Environment y pega tu connection string de Aiven
+# en la variable DATABASE_URL (formato: postgresql://USER:PASS@HOST:PORT/dbname?sslmode=require)
 services:
   - type: web
     name: ecoruta
@@ -10,15 +11,9 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: ecoruta-db
-          property: connectionString
+        sync: false   # pegar la connection string de Aiven (no usar la de Render)
       - key: FRONTEND_DIR
         value: /app/frontend
       # Opcional: distancias reales OSRM/ORS. Sin esto usa Haversine.
       - key: ORS_API_KEY
         sync: false
-databases:
-  - name: ecoruta-db
-    plan: free
-    databaseName: ruteo_db
