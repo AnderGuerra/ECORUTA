@@ -92,7 +92,25 @@ button { font-family: inherit; }
   transition: background .2s, transform .2s;
 }
 .main-nav a.nav-camion:hover { background: #237a46; transform: translateY(-1px); }
-.drawer-menu a.drawer-acceso { color: #fff !important; font-weight: 700; }
+.drawer-menu a.drawer-acceso {
+  color: #fff !important;
+  font-weight: 700;
+  border: 1px solid var(--palette1);
+  border-radius: 6px;
+  margin: 6px 16px;
+  text-align: center;
+  display: block;
+}
+.drawer-menu a.drawer-camion {
+  color: #fff !important;
+  font-weight: 700;
+  background: #2e9e5b;
+  border: 1px solid #2e9e5b;
+  border-radius: 6px;
+  margin: 6px 16px;
+  text-align: center;
+  display: block;
+}
 
 .main-nav > ul > li.has-children > a::after {
   content: ' ▾';
@@ -724,10 +742,10 @@ const menuItems = [
       { label: 'Preguntas Frecuentes', href: '#/mas/faq' },
     ],
   },
-  // Acceso al sistema EcoRuta (denuncias + rutas). Ruta absoluta: funciona
-  // tanto en local como en Render, se sirva el portal en / o en /muni-demo/.
-  { label: '🚛 Camión EcoRuta', href: '/login1.html', cls: 'nav-camion' },
-  { label: '🔒 Acceder', href: '/login1.html', cls: 'nav-acceso' },
+  // Acceso al sistema EcoRuta (denuncias + rutas). Se adapta dinámicamente
+  // tanto si se abre por file:// (desarrollo local) como servido en Render o localhost (/login1.html).
+  { label: '🚛 Camión EcoRuta', href: (window.location.protocol === 'file:' ? '../frontend/login1.html' : '/login1.html'), cls: 'nav-camion' },
+  { label: '🔒 Acceder', href: (window.location.protocol === 'file:' ? '../frontend/login1.html' : '/login1.html'), cls: 'nav-acceso' },
 ];
 
 /* =====================================================
@@ -801,7 +819,7 @@ function renderDrawerItems(items) {
   return items.map((item) => {
     const hasChildren = item.children && item.children.length;
     if (!hasChildren) {
-      const dCls = (item.cls === 'nav-acceso' || item.cls === 'nav-camion') ? 'drawer-acceso' : (item.cls || '');
+      const dCls = item.cls === 'nav-camion' ? 'drawer-camion' : (item.cls === 'nav-acceso' ? 'drawer-acceso' : (item.cls || ''));
       return `<li><a href="${item.href || '#'}"${dCls ? ` class="${dCls}"` : ''}>${item.label}</a></li>`;
     }
     return `

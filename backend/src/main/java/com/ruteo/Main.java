@@ -411,6 +411,16 @@ public class Main {
                 return repoSibling;
             }
         }
+        // Si no se encuentra en frontend, buscar en muni-demo (util cuando muni-demo es la landing en /)
+        File inMuniInside = new File(new File(frontendRoot, "muni-demo"), rel).getCanonicalFile();
+        if (inMuniInside.getCanonicalPath().startsWith(frontendRoot.getCanonicalPath()) && inMuniInside.exists()) {
+            return inMuniInside;
+        }
+        File repoRoot = frontendRoot.getParentFile().getCanonicalFile();
+        File inMuniSibling = new File(new File(repoRoot, "muni-demo"), rel).getCanonicalFile();
+        if (inMuniSibling.getCanonicalPath().startsWith(repoRoot.getCanonicalPath()) && inMuniSibling.exists()) {
+            return inMuniSibling;
+        }
         return inFrontend ? candidate : null;
     }
 

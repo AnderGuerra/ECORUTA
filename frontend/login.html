@@ -397,8 +397,11 @@
 
                 if (data.success) {
                     const userRol = data.rol || 'gestor';
+                    localStorage.setItem('ecoruta_user', data.usuario);
                     localStorage.setItem('nexo_user', data.usuario);
+                    localStorage.setItem('ecoruta_token', data.token);
                     localStorage.setItem('nexo_token', data.token);
+                    localStorage.setItem('ecoruta_rol', userRol);
                     localStorage.setItem('nexo_rol', userRol);
                     btnText.textContent = 'Acceso concedido';
                     setTimeout(() => {

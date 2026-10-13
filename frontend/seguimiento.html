@@ -4,36 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
-        if (!localStorage.getItem('nexo_token')) {
+        if (!localStorage.getItem('ecoruta_token') && !localStorage.getItem('nexo_token')) {
             window.location.href = 'login1.html';
         }
         if (localStorage.getItem('darkMode') === 'enabled') {
             document.documentElement.classList.add('dark-mode');
         }
     </script>
-    <title>NEXO | Seguimiento de Entregas</title>
+    <title>EcoRuta | Seguimiento de Recolección</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <style>
         :root {
-            --primary: linear-gradient(135deg, #5B6BFF 0%, #3DD7E5 100%);
-            --secondary: #5B6BFF;
+            --primary: linear-gradient(135deg, #0f3d2e 0%, #2e9e5b 100%);
+            --secondary: #3fa87d;
             --success: #10B981;
             --danger: #EF4444;
             --warning: #F59E0B;
-            --bg: #E2E6EE;
-            --white: #FFFFFF;
-            --text-color: #111827;
-            --border: #CBD1DC;
-            --card-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+            --bg: #f0f7f4;
+            --white: rgba(255, 255, 255, 0.88);
+            --text-color: #0d281e;
+            --border: rgba(63, 168, 125, 0.22);
+            --card-shadow: 0 8px 32px rgba(15, 61, 46, 0.08);
         }
 
         body.dark-mode {
-            --bg: #0A0B0F;
-            --white: #14151C;
-            --text-color: #F2F4F8;
-            --border: #2A2D38;
-            --primary: linear-gradient(135deg, #5B6BFF 0%, #3DD7E5 100%);
+            --bg: #071912;
+            --white: rgba(14, 38, 29, 0.68);
+            --text-color: #f2fbf6;
+            --border: rgba(125, 255, 196, 0.18);
+            --primary: linear-gradient(135deg, #0f3d2e 0%, #2e9e5b 100%);
             --card-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.03) inset;
         }
 
@@ -90,7 +90,7 @@
             background: var(--secondary);
             color: white;
             border-color: var(--secondary);
-            box-shadow: 0 4px 12px rgba(200, 157, 74, 0.35);
+            box-shadow: 0 4px 12px rgba(46, 158, 91, 0.35);
         }
 
         .card {
@@ -162,7 +162,7 @@
         #loading {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(11, 43, 64, 0.85);
+            background: rgba(7, 25, 18, 0.88);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             z-index: 99999;
@@ -206,11 +206,11 @@
                 </svg>
             </div>
         </div>
-        <div class="loading-text" id="loadingText">Obteniendo estado de entregas... por favor espere</div>
+        <div class="loading-text" id="loadingText">Obteniendo estado de recolección EcoRuta... por favor espere</div>
     </div>
 
     <div class="header">
-        <h1><i class="fas fa-map-marked-alt"></i> Estado de Entregas</h1>
+        <h1><i class="fas fa-recycle"></i> Estado de Recolección · EcoRuta</h1>
         <div style="display:flex; gap:10px; align-items:center;">
             <input type="date" id="inputFecha" onchange="cargarDatos()" style="padding:8px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white; color-scheme: dark;">
             <a href="index.html" class="btn-back"><i class="fas fa-arrow-left"></i> Volver</a>
@@ -252,8 +252,8 @@
         function resetTimer() {
             clearTimeout(inactivityTimer);
             inactivityTimer = setTimeout(() => {
-                localStorage.removeItem('nexo_user');
-                localStorage.removeItem('nexo_token');
+                localStorage.removeItem('ecoruta_user'); localStorage.removeItem('nexo_user');
+                localStorage.removeItem('ecoruta_token'); localStorage.removeItem('nexo_token');
                 alert("Sesión expirada por inactividad.");
                 window.location.href = 'login1.html';
             }, 5 * 60 * 1000); 
@@ -296,7 +296,7 @@
 
         // Helper para peticiones con autenticación
         async function fetchWithAuth(url, options = {}) {
-            const token = localStorage.getItem('nexo_token');
+            const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
             if (!options.headers) options.headers = {};
             options.headers['Authorization'] = `Bearer ${token}`;
             

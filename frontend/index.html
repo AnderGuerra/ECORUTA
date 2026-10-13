@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
-        const token = localStorage.getItem('nexo_token');
-        const rol = (localStorage.getItem('nexo_rol') || 'gestor').toLowerCase();
+        const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
+        const rol = (localStorage.getItem('ecoruta_rol') || localStorage.getItem('nexo_rol') || 'gestor').toLowerCase();
         if (!token) {
             window.location.href = 'login1.html';
         } else if (rol === 'superadmin') {
@@ -20,7 +20,7 @@
             document.documentElement.classList.add('dark-mode');
         }
     </script>
-    <title>NEXO - Panel de Control</title>
+    <title>EcoRuta - Panel de Control</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap"
@@ -36,9 +36,9 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(11, 43, 64, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            background: rgba(7, 25, 18, 0.88);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             z-index: 99999;
             display: flex;
             flex-direction: column;
@@ -56,9 +56,9 @@
             margin-top: 25px;
             font-size: 18px;
             font-weight: 600;
-            color: #C89D4A;
+            color: #7dffc4;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             letter-spacing: 0.5px;
         }
         
@@ -67,59 +67,71 @@
             box-sizing: border-box;
         }
 
-        /* ========== PALETA REFINADA Y ELEGANTE (CELESTE & DORADO) ========== */
+        /* ========== PALETA ECORUTA GLASSMORHPIC VERDE ========== */
         :root {
-            --bg-light: #E2E6EE;
-            --card-light: #FFFFFF;
-            --card-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
-            --card-border: 1px solid #CBD1DC;
-            --text-light: #111827;
-            --text-muted-light: #4B5563;
-            --border-light: #CBD1DC;
-            --primary-dark: #4A59E6;
-            --primary-main: #5B6BFF;
-            --accent-gold: #5B6BFF;
-            --accent-orange: #5B6BFF;
+            --bg-light: #f0f7f4;
+            --card-light: rgba(255, 255, 255, 0.85);
+            --card-shadow: 0 8px 32px 0 rgba(15, 61, 46, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+            --card-border: 1px solid rgba(63, 168, 125, 0.22);
+            --text-light: #0d281e;
+            --text-muted-light: #3a6050;
+            --border-light: rgba(63, 168, 125, 0.22);
+            --primary-dark: #0f3d2e;
+            --primary-main: #2e9e5b;
+            --primary-hover: #3eb56f;
+            --accent-gold: #2e9e5b;
+            --accent-orange: #237a46;
+            --accent-mint: #7dffc4;
+            --accent-lime: #a8e063;
+            --secondary: #3fa87d;
+            --secondary-dark: #237a46;
             --success: #10B981;
             --danger: #EF4444;
             --warning: #F59E0B;
             
             /* Additions for Light Theme */
-            --input-bg: #F3F4F8;
+            --input-bg: rgba(255, 255, 255, 0.9);
             --input-focus-bg: #FFFFFF;
-            --table-th-bg: #E5E8F0;
-            --summary-bg: #FAFBFF;
-            --summary-hover: #E8ECF5;
-            --summary-border: 1px solid #CBD1DC;
-            --counter-bg: rgba(91, 107, 255, 0.08);
-            --counter-border: 1px solid rgba(91, 107, 255, 0.2);
+            --table-th-bg: rgba(46, 158, 91, 0.09);
+            --summary-bg: rgba(240, 253, 244, 0.75);
+            --summary-hover: rgba(220, 247, 229, 0.9);
+            --summary-border: 1px solid rgba(63, 168, 125, 0.22);
+            --counter-bg: rgba(46, 158, 91, 0.1);
+            --counter-border: 1px solid rgba(46, 158, 91, 0.25);
+            --glass-blur: blur(20px) saturate(150%);
         }
 
         body.dark-mode {
-            --bg-light: #0A0B0F;
-            --card-light: #14151C;
-            --card-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.03) inset;
-            --card-border: 1px solid #2A2D38;
-            --text-light: #F2F4F8;
-            --text-muted-light: #9AA0AE;
-            --border-light: #2A2D38;
-            --primary-dark: #0A0B0F;
-            --primary-main: #5B6BFF;
-            --accent-gold: #5B6BFF;
-            --accent-orange: #5B6BFF;
+            --bg-light: #071912;
+            --card-light: rgba(14, 38, 29, 0.68);
+            --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(125, 255, 196, 0.09);
+            --card-border: 1px solid rgba(125, 255, 196, 0.18);
+            --text-light: #f2fbf6;
+            --text-muted-light: #8dbda9;
+            --border-light: rgba(125, 255, 196, 0.16);
+            --primary-dark: #071912;
+            --primary-main: #3fa87d;
+            --primary-hover: #4bc48f;
+            --accent-gold: #7dffc4;
+            --accent-orange: #a8e063;
+            --accent-mint: #7dffc4;
+            --accent-lime: #a8e063;
+            --secondary: #3fa87d;
+            --secondary-dark: #237a46;
             --success: #2BE08C;
             --danger: #FF3A5C;
             --warning: #F5D547;
             
             /* Halo additions */
-            --input-bg: #14151C;
-            --input-focus-bg: #1E2029;
-            --table-th-bg: rgba(255, 255, 255, 0.02);
-            --summary-bg: #14151C;
-            --summary-hover: #1E2029;
-            --summary-border: 1px solid #2A2D38;
-            --counter-bg: rgba(91, 107, 255, 0.08);
-            --counter-border: 1px solid rgba(91, 107, 255, 0.25);
+            --input-bg: rgba(10, 28, 21, 0.72);
+            --input-focus-bg: rgba(16, 42, 32, 0.95);
+            --table-th-bg: rgba(125, 255, 196, 0.07);
+            --summary-bg: rgba(14, 38, 29, 0.65);
+            --summary-hover: rgba(20, 52, 40, 0.8);
+            --summary-border: 1px solid rgba(125, 255, 196, 0.18);
+            --counter-bg: rgba(63, 168, 125, 0.16);
+            --counter-border: 1px solid rgba(125, 255, 196, 0.25);
+            --glass-blur: blur(24px) saturate(160%);
         }
 
         body {
@@ -564,7 +576,7 @@
         }
 
         .badge-tag {
-            background: rgba(200, 157, 74, 0.15);
+            background: rgba(46, 158, 91, 0.15);
             padding: 4px 12px;
             border-radius: 40px;
             font-size: 11px;
@@ -586,7 +598,7 @@
         }
 
         .btn-icon:hover {
-            background: rgba(200, 157, 74, 0.15);
+            background: rgba(46, 158, 91, 0.15);
             color: var(--accent-gold);
         }
 
@@ -606,7 +618,7 @@
 
         details summary:hover {
             background: var(--summary-hover);
-            box-shadow: 0 4px 12px rgba(200, 157, 74, 0.08);
+            box-shadow: 0 4px 12px rgba(46, 158, 91, 0.12);
         }
 
         /* Modales */
@@ -824,10 +836,10 @@
     <div class="header">
         <div class="header-content">
             <div class="logo-area">
-                <div class="logo-icon"><i class="fas fa-truck-fast"></i></div>
+                <div class="logo-icon"><i class="fas fa-recycle"></i></div>
                 <div>
-                    <h1>NEXO</h1>
-                    <p>Ruteo Inteligente · Logística Eficiente</p>
+                    <h1>EcoRuta</h1>
+                    <p>Ruteo Ecológico Inteligente · Reciclaje Urbano</p>
                 </div>
             </div>
             <div class="header-actions">
@@ -958,7 +970,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="footer"><i class="fas fa-charging-station"></i> Datos sincronizados · NEXO Ruteo Inteligente</div>
+        <div class="footer"><i class="fas fa-leaf"></i> Datos sincronizados · EcoRuta Ruteo Inteligente</div>
     </div>
 
     <!-- MODALES -->
@@ -1344,7 +1356,7 @@
         let categorias = [];
 
         async function fetchWithAuth(url, options = {}) {
-            const token = localStorage.getItem('nexo_token');
+            const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
             if (!options.headers) options.headers = {};
             options.headers['Authorization'] = `Bearer ${token}`;
             const response = await fetch(url, options);
@@ -2397,7 +2409,7 @@ document.getElementById('modalRutas').style.display = 'flex';
             if (buscador) {
                 buscador.addEventListener('input', () => aplicarFiltros());
             }
-            if (localStorage.getItem('nexo_rol') === 'superadmin') {
+            if ((localStorage.getItem('ecoruta_rol') || localStorage.getItem('nexo_rol') || '').toLowerCase() === 'superadmin') {
                 const btnAdmin = document.getElementById('btnAdminUsuarios');
                 if (btnAdmin) btnAdmin.style.display = 'inline-flex';
             }

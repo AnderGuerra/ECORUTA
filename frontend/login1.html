@@ -245,6 +245,23 @@
             }
         }
 
+        /* Volver al portal */
+        .back-portal-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-decoration: none;
+            margin-bottom: 18px;
+            transition: var(--transition);
+        }
+
+        .back-portal-link:hover {
+            color: var(--accent);
+            transform: translateX(-3px);
+        }
+
         /* Logo */
         .logo {
             display: flex;
@@ -607,6 +624,8 @@
     <!-- Card de Login Glassmorphism -->
     <main class="glass-card" role="main">
 
+        <a href="/" id="backToPortal" class="back-portal-link" title="Regresar al Portal Ciudadano">← Volver al Portal Ciudadano</a>
+
         <div class="logo">
             <div class="logo-icon">♻</div>
             <div class="logo-text">Eco<span>Ruta</span></div>
@@ -667,6 +686,12 @@
     </main>
 
     <script>
+        // Adaptar enlace de retorno si se abre localmente por file://
+        const backPortal = document.getElementById('backToPortal');
+        if (backPortal && window.location.protocol === 'file:') {
+            backPortal.href = '../muni-demo/index.html';
+        }
+
         // Toggle de contraseña
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
@@ -707,8 +732,11 @@
                 if (!data.success) throw new Error(data.message || 'Credenciales inválidas');
 
                 const userRol = data.rol || 'gestor';
+                localStorage.setItem('ecoruta_user', data.usuario);
                 localStorage.setItem('nexo_user', data.usuario);
+                localStorage.setItem('ecoruta_token', data.token);
                 localStorage.setItem('nexo_token', data.token);
+                localStorage.setItem('ecoruta_rol', userRol);
                 localStorage.setItem('nexo_rol', userRol);
 
                 btn.textContent = '✓ ¡Bienvenido!';

@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
-    const token = localStorage.getItem('nexo_token');
-    const rol = (localStorage.getItem('nexo_rol') || '').toLowerCase();
+    const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
+    const rol = (localStorage.getItem('ecoruta_rol') || localStorage.getItem('nexo_rol') || '').toLowerCase();
     if (!token) { window.location.href = 'login1.html'; }
     else if (rol === 'superadmin') { window.location.href = 'admin.html'; }
 </script>
@@ -18,7 +18,7 @@
     .ciu-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
     .ciu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     @media (max-width: 900px) { .ciu-grid { grid-template-columns: 1fr; } }
-    .ciu-card { background: var(--card-light); border: var(--card-border); border-radius: 20px; padding: 22px; box-shadow: var(--card-shadow); }
+    .ciu-card { background: var(--card-light); border: var(--card-border); border-radius: 20px; padding: 22px; box-shadow: var(--card-shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
     .ciu-card h3 { margin: 0 0 14px; }
     .control-input, .select-filter, .search-input { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-light); background: var(--input-bg); color: var(--text-light); font-size: 13px; }
     textarea.control-input { min-height: 90px; resize: vertical; }
@@ -89,10 +89,10 @@
 <script>
 const BARRIOS = ["Sajonia","Vista Alegre","Centro Histórico","Villa Morra","Recoleta","San Roque","La Encarnación","Catedral","Tacumbú","Obrero","Nazareth","Hipódromo","Pinozá","San Pablo","Trinidad","Zeballos Cué","Botánico","Loma Pytá","Salvador del Mundo","Santa María"];
 document.getElementById('listaBarrios').innerHTML = BARRIOS.map(b => `<option value="${b}">`).join('');
-document.getElementById('lblUser').textContent = localStorage.getItem('nexo_user') || '';
+document.getElementById('lblUser').textContent = localStorage.getItem('ecoruta_user') || localStorage.getItem('nexo_user') || '';
 function logout() { localStorage.clear(); window.location.href = 'login1.html'; }
 async function fetchAuth(url, options = {}) {
-    const t = localStorage.getItem('nexo_token');
+    const t = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
     options.headers = Object.assign({}, options.headers, { 'Authorization': 'Bearer ' + t });
     const r = await fetch(url, options);
     if (r.status === 401) { alert('Sesión expirada'); window.location.href = 'login1.html'; throw new Error('401'); }

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Usuarios - NEXO Super Admin</title>
+    <title>Gestión de Usuarios - EcoRuta Super Admin</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,24 +15,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Design System CSS -->
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="css/style.css">
 
     <style>
         /* =========================================================
-           NEXO SUPER ADMIN - PREMIUM AESTHETIC DESIGN SYSTEM
+           EcoRuta SUPER ADMIN - PREMIUM GLASSMORHPIC SYSTEM
            ========================================================= */
         :root {
-            --bg-base: #050508;
-            --bg-gradient: radial-gradient(circle at 50% 0%, #151828 0%, #050508 70%);
+            --bg-base: #061710;
+            --bg-gradient: radial-gradient(circle at 50% 0%, #0f3d2e 0%, #061710 75%);
             
-            --card-bg: rgba(16, 18, 27, 0.65);
-            --card-border: 1px solid rgba(255, 255, 255, 0.04);
-            --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            --card-bg: rgba(15, 45, 34, 0.55);
+            --card-border: 1px solid rgba(125, 255, 196, 0.16);
+            --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(125, 255, 196, 0.1);
             
-            --primary-accent: #3b82f6; /* Electric Blue */
-            --primary-glow: rgba(59, 130, 246, 0.25);
-            --gold-accent: #fbbf24; /* Premium Gold */
-            --gold-glow: rgba(251, 191, 36, 0.15);
+            --primary-accent: #3fa87d; /* Emerald */
+            --primary-glow: rgba(63, 168, 125, 0.35);
+            --gold-accent: #7dffc4; /* Mint accent */
+            --gold-glow: rgba(125, 255, 196, 0.25);
             
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
@@ -42,9 +42,9 @@
             --danger: #ef4444;
             --warning: #f59e0b;
 
-            --input-bg: rgba(255, 255, 255, 0.03);
-            --input-border: rgba(255, 255, 255, 0.08);
-            --input-focus: rgba(59, 130, 246, 0.4);
+            --input-bg: rgba(10, 28, 21, 0.65);
+            --input-border: rgba(125, 255, 196, 0.2);
+            --input-focus: rgba(63, 168, 125, 0.5);
         }
 
         body.super-admin-theme {
@@ -691,9 +691,9 @@
     <div class="header">
         <div class="header-content">
             <div class="brand">
-                <i class="fas fa-cubes logo-icon"></i>
+                <i class="fas fa-recycle logo-icon"></i>
                 <div class="brand-text">
-                    <h1>NEXO</h1>
+                    <h1>EcoRuta</h1>
                     <span>Super Admin Center</span>
                 </div>
                 <span class="admin-header-badge"><i class="fas fa-shield-alt"></i> Panel de Control</span>
@@ -789,7 +789,7 @@
             </table>
         </div>
 
-        <div class="footer"><i class="fas fa-shield-alt"></i> NEXO Super Admin Module · Gestión Centralizada de Usuarios</div>
+        <div class="footer"><i class="fas fa-shield-alt"></i> EcoRuta Super Admin Module · Gestión Centralizada de Usuarios</div>
     </div>
 
     <!-- MODAL CREAR USUARIO -->
@@ -897,7 +897,7 @@
 
         // Auth Helper
         async function fetchWithAuth(url, options = {}) {
-            const token = localStorage.getItem('nexo_token');
+            const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
             if (!options.headers) options.headers = {};
             options.headers['Authorization'] = `Bearer ${token}`;
             const response = await fetch(url, options);
@@ -910,8 +910,8 @@
         }
 
         function verifySuperAdmin() {
-            const token = localStorage.getItem('nexo_token');
-            const rol = localStorage.getItem('nexo_rol');
+            const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
+            const rol = (localStorage.getItem('ecoruta_rol') || localStorage.getItem('nexo_rol') || '').toLowerCase();
             if (!token) {
                 window.location.href = 'login1.html';
             } else if (rol !== 'superadmin') {

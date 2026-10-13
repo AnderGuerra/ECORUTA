@@ -4,34 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
-        if (!localStorage.getItem('nexo_token')) {
+        if (!localStorage.getItem('ecoruta_token') && !localStorage.getItem('nexo_token')) {
             window.location.href = 'login1.html';
         }
         if (localStorage.getItem('darkMode') === 'enabled') {
             document.documentElement.classList.add('dark-mode');
         }
     </script>
-    <title>NEXO | Configuración de Reglas</title>
+    <title>EcoRuta | Configuración de Reglas</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <style>
         :root {
-            --primary: linear-gradient(135deg, #5B6BFF 0%, #3DD7E5 100%);
-            --secondary: #5B6BFF;
-            --bg: #E2E6EE;
-            --white: #FFFFFF;
-            --text: #111827;
-            --border: #CBD1DC;
-            --card-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+            --primary: linear-gradient(135deg, #0f3d2e 0%, #2e9e5b 100%);
+            --secondary: #3fa87d;
+            --bg: #f0f7f4;
+            --white: rgba(255, 255, 255, 0.88);
+            --text: #0d281e;
+            --border: rgba(63, 168, 125, 0.22);
+            --card-shadow: 0 8px 32px rgba(15, 61, 46, 0.08);
         }
 
         body.dark-mode {
-            --bg: #0A0B0F;
-            --white: #14151C;
-            --text: #F2F4F8;
-            --border: #2A2D38;
-            --primary: linear-gradient(135deg, #5B6BFF 0%, #3DD7E5 100%);
+            --bg: #071912;
+            --white: rgba(14, 38, 29, 0.68);
+            --text: #f2fbf6;
+            --border: rgba(125, 255, 196, 0.18);
+            --primary: linear-gradient(135deg, #0f3d2e 0%, #2e9e5b 100%);
             --card-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.03) inset;
         }
 
@@ -209,7 +209,7 @@
 
         // Helper para peticiones con autenticación
         async function fetchWithAuth(url, options = {}) {
-            const token = localStorage.getItem('nexo_token');
+            const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
             if (!options.headers) options.headers = {};
             options.headers['Authorization'] = `Bearer ${token}`;
             
