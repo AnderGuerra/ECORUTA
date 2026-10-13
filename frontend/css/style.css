@@ -189,8 +189,35 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 }
 
 /* =========================================================
-   Animated Truck Loader
+   Active GIF Loader (carga1.gif) & Truck Loader Backup
    ========================================================= */
+
+.loader-gif-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.loader-gif {
+    max-width: 220px;
+    max-height: 180px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.45));
+    border-radius: 16px;
+    animation: loaderPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes loaderPulse {
+    0% { transform: scale(0.98); }
+    100% { transform: scale(1.02); }
+}
+
+.loader-truck-backup {
+    display: none !important;
+}
 
 .loader {
     width: fit-content;

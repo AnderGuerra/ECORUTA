@@ -2421,7 +2421,12 @@ document.getElementById('modalRutas').style.display = 'flex';
 
     <!-- PANTALLA DE CARGA GENERAL (CELESTE & DORADO GLASS CON CAMIÓN ANIMADO) -->
     <div class="loading-overlay" id="loadingOverlay" style="opacity: 0; pointer-events: none;">
-        <div class="loader">
+        <!-- Loader activo: carga1.gif -->
+        <div class="loader-gif-container">
+            <img src="assets/img/carga1.gif" alt="Cargando EcoRuta..." class="loader-gif">
+        </div>
+        <!-- Loader previo (camión animado SVG/CSS) preservado sin borrar -->
+        <div class="loader loader-truck-backup" style="display: none;">
             <div class="truckWrapper">
                 <div class="truckBody">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 198 93" class="trucksvg">
