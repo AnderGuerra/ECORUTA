@@ -261,10 +261,8 @@ public class Main {
 
             System.out.println("✅ Esquema de base de datos verificado/creado con relaciones.");
             
-            ResultSet rsClientes = stmt.executeQuery("SELECT COUNT(*) FROM clientes");
-            if (rsClientes.next() && rsClientes.getInt(1) == 0) {
-                loadDefaultClients(conn);
-            }
+            // Clientes de ejemplo omitidos: la base de datos se mantiene limpia para datos reales
+            System.out.println("ℹ️ Inicialización de clientes de ejemplo deshabilitada.");
         } catch (SQLException e) {
             System.err.println("❌ Error al inicializar el esquema de base de datos: " + e.getMessage());
         }
