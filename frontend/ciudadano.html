@@ -1773,38 +1773,50 @@
             currentMarker = L.marker([lat, lng], { icon: pinIcon }).addTo(map);
         }
 
-        // Render Trucks
-        function renderTrucks() {
+        // Cargar camiones desde el backend real de EcoRuta
+        async function renderTrucks() {
             trucksLayer.clearLayers();
-            const dummyTrucks = [
-                { id: 'CAM-01', lat: -25.2890, lng: -57.6320, chofer: 'Carlos Benítez', barrio: 'Sajonia' },
-                { id: 'CAM-02', lat: -25.2980, lng: -57.6080, chofer: 'Marcos Duarte', barrio: 'Recoleta' },
-                { id: 'CAM-03', lat: -25.2750, lng: -57.5890, chofer: 'Rubén Giménez', barrio: 'Trinidad' },
-                { id: 'CAM-04', lat: -25.3120, lng: -57.6250, chofer: 'Esteban Sosa', barrio: 'San Vicente' }
-            ];
-
-            dummyTrucks.forEach(t => {
-                const truckIcon = L.divIcon({
-                    className: 'truck-pin',
-                    html: `
-                        <div style="background:#111827; color:white; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.3); border:2px solid white;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-                        </div>
-                    `,
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15]
+            let trucksCount = 0;
+            try {
+                const authToken = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token') || '';
+                const res = await fetch(`${API_BASE}/rutas-todas`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
                 });
+                if (res.ok) {
+                    const data = await res.json();
+                    const rutas = Array.isArray(data) ? data : (data.rutas || []);
+                    rutas.forEach(r => {
+                        const lat = parseFloat(r.latitud || r.lat || r.ubicacion_lat);
+                        const lng = parseFloat(r.longitud || r.lng || r.ubicacion_lng);
+                        if (!isNaN(lat) && !isNaN(lng)) {
+                            trucksCount++;
+                            const truckIcon = L.divIcon({
+                                className: 'truck-pin',
+                                html: `
+                                    <div style="background:#0f172a; color:white; width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid white;">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+                                    </div>
+                                `,
+                                iconSize: [28, 28],
+                                iconAnchor: [14, 14]
+                            });
 
-                const marker = L.marker([t.lat, t.lng], { icon: truckIcon });
-                marker.bindPopup(`
-                    <div style="padding:10px; font-size:12px;">
-                        <div style="font-weight:700; margin-bottom:4px;">Camión ${t.id}</div>
-                        <div>Barrio: <strong>${t.barrio}</strong></div>
-                        <div style="color:var(--text-muted);">Chofer: ${t.chofer}</div>
-                    </div>
-                `);
-                trucksLayer.addLayer(marker);
-            });
+                            const marker = L.marker([lat, lng], { icon: truckIcon });
+                            marker.bindPopup(`
+                                <div style="padding:10px; font-size:12px;">
+                                    <div style="font-weight:700; margin-bottom:4px;">${escapeHtml(r.vehiculo || r.codigo || 'Camión')}</div>
+                                    <div>Zona/Barrio: <strong>${escapeHtml(r.zona || r.barrio || 'En ruta')}</strong></div>
+                                    <div style="color:var(--text-muted);">Chofer: ${escapeHtml(r.chofer || 'Personal Municipal')}</div>
+                                </div>
+                            `);
+                            trucksLayer.addLayer(marker);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.debug('Sin camiones en ruta activos en API');
+            }
+            document.getElementById('kpiCamiones').textContent = trucksCount;
         }
 
         // Fetch Reports from API
