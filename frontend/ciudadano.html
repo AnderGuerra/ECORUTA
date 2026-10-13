@@ -1502,17 +1502,17 @@
                 document.getElementById('themeIconMoon').style.display = 'none';
             }
 
-            // Update Map Base Tiles according to theme (Clean & crisp)
+            // Update Map Base Tiles according to theme (100% Libre sin API Key)
             if (map) {
                 if (baseTileLayer) map.removeLayer(baseTileLayer);
                 
                 const tileUrl = isDark
-                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+                    ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+                    : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 
                 baseTileLayer = L.tileLayer(tileUrl, {
-                    attribution: '&copy; OpenStreetMap, &copy; CARTO',
-                    maxZoom: 19
+                    attribution: '&copy; Esri, HERE, Garmin, OpenStreetMap',
+                    maxZoom: 18
                 }).addTo(map);
             }
         }
@@ -1528,8 +1528,8 @@
         function initMap() {
             const isDark = document.documentElement.classList.contains('dark');
             const tileUrl = isDark
-                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+                ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+                : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 
             map = L.map('map', {
                 center: [-25.2950, -57.6050],
@@ -1541,8 +1541,8 @@
             L.control.zoom({ position: 'topright' }).addTo(map);
 
             baseTileLayer = L.tileLayer(tileUrl, {
-                attribution: '&copy; OpenStreetMap, &copy; CARTO',
-                maxZoom: 19
+                attribution: '&copy; Esri, HERE, Garmin, OpenStreetMap',
+                maxZoom: 18
             }).addTo(map);
 
             // Capa GeoJSON Vectorial de Barrios
