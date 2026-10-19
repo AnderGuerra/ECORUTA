@@ -1679,7 +1679,7 @@ String dateFilter = switch (periodo) {
             return d;
         }
 
-        /** GET /api/denuncias?ticket=ECO-... (publico) | ?estado=&barrio=&mine=1 (auth) */
+        /** GET /api/denuncias?ticket=ECO-... (publico) | ?estado=&barrio=&mine=1 (auth/publico) */
         private void handleList(HttpExchange exchange) throws IOException, SQLException {
             Map<String, String> qp = queryParams(exchange);
             try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
@@ -1698,16 +1698,11 @@ String dateFilter = switch (periodo) {
                     }
                     return;
                 }
-                if (!isAuthorized(exchange)) { sendError(exchange, 401, "No autorizado"); return; }
                 Integer userId = getUserIdFromSession(exchange);
-                String rol = getRolFromSession(exchange);
                 boolean manager = canManageRutas(exchange);
                 StringBuilder sql = new StringBuilder("SELECT * FROM denuncias WHERE 1=1");
                 List<Object> params = new ArrayList<>();
-                if (!manager) {
-                    sql.append(" AND usuario_id = ?");
-                    params.add(userId);
-                } else if ("1".equals(qp.get("mine"))) {
+                if (!manager && userId != null && "1".equals(qp.get("mine"))) {
                     sql.append(" AND usuario_id = ?");
                     params.add(userId);
                 }
@@ -1724,14 +1719,26 @@ String dateFilter = switch (periodo) {
                 for (int i = 0; i < params.size(); i++) ps.setObject(i + 1, params.get(i));
                 ResultSet rs = ps.executeQuery();
                 List<Map<String, Object>> out = new ArrayList<>();
-                while (rs.next()) out.add(rowToMap(rs));
+                while (rs.next()) {
+                    Map<String, Object> row = rowToMap(rs);
+                    if (!manager) {
+                        row.remove("telefono");
+                    }
+                    out.add(row);
+                }
                 sendResponse(exchange, 200, gson.toJson(out));
             }
         }
 
-        /** POST /api/denuncias (auth: ciudadano/gestor/admin/superadmin) -> pendiente */
+        private String optString(JsonObject json, String key, String def) {
+            if (json.has(key) && !json.get(key).isJsonNull()) {
+                try { return json.get(key).getAsString(); } catch (Exception ignored) {}
+            }
+            return def;
+        }
+
+        /** POST /api/denuncias: crea y persiste en BD siempre (con o sin sesión) */
         private void handleCreate(HttpExchange exchange) throws IOException, SQLException {
-            if (!isAuthorized(exchange)) { sendError(exchange, 401, "No autorizado"); return; }
             Integer userId = getUserIdFromSession(exchange);
             String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
                     .lines().collect(Collectors.joining("\n"));
@@ -1739,17 +1746,20 @@ String dateFilter = switch (periodo) {
             try {
                 json = JsonParser.parseString(body).getAsJsonObject();
             } catch (Exception e) { sendError(exchange, 400, "JSON invalido"); return; }
-            String descripcion = json.has("descripcion") ? json.get("descripcion").getAsString().trim() : "";
-            String barrio = json.has("barrio") ? json.get("barrio").getAsString().trim() : "";
+            String descripcion = optString(json, "descripcion", "").trim();
+            String barrio = optString(json, "barrio", "").trim();
             if (descripcion.isEmpty() || barrio.isEmpty()) { sendError(exchange, 400, "descripcion y barrio son obligatorios"); return; }
-            if (!json.has("latitud") || !json.has("longitud")) { sendError(exchange, 400, "latitud y longitud son obligatorias"); return; }
+            if (!json.has("latitud") || json.get("latitud").isJsonNull() || !json.has("longitud") || json.get("longitud").isJsonNull()) {
+                sendError(exchange, 400, "latitud y longitud son obligatorias");
+                return;
+            }
             double lat = json.get("latitud").getAsDouble();
             double lon = json.get("longitud").getAsDouble();
-            String categoria = json.has("categoria") ? json.get("categoria").getAsString() : "VERTEDERO_CLANDESTINO";
-            String direccion = json.has("direccion_referencia") ? json.get("direccion_referencia").getAsString() : "";
-            String telefono = json.has("telefono") ? json.get("telefono").getAsString() : "";
-            String nombre = json.has("nombre_ciudadano") ? json.get("nombre_ciudadano").getAsString() : "";
-            String foto = json.has("foto_url") ? json.get("foto_url").getAsString() : "";
+            String categoria = optString(json, "categoria", "VERTEDERO_CLANDESTINO");
+            String direccion = optString(json, "direccion_referencia", "");
+            String telefono = optString(json, "telefono", "");
+            String nombre = optString(json, "nombre_ciudadano", "");
+            String foto = optString(json, "foto_url", "");
             String fecha = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
             String ticket = "ECO-" + fecha + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
             try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
@@ -1765,7 +1775,11 @@ String dateFilter = switch (periodo) {
                 ps.setDouble(8, lat);
                 ps.setDouble(9, lon);
                 ps.setString(10, foto);
-                ps.setInt(11, userId);
+                if (userId != null) {
+                    ps.setInt(11, userId);
+                } else {
+                    ps.setNull(11, java.sql.Types.INTEGER);
+                }
                 ResultSet rs = ps.executeQuery();
                 int id = rs.next() ? rs.getInt(1) : 0;
                 Map<String, Object> resp = new HashMap<>();

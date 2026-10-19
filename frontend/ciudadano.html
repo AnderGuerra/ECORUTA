@@ -1819,37 +1819,28 @@
             document.getElementById('kpiCamiones').textContent = trucksCount;
         }
 
-        // Fetch Reports from API
+        // Fetch Reports from API (PostgreSQL)
         async function loadReports() {
             try {
                 const authToken = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token') || '';
-                const res = await fetch(`${API_BASE}/denuncias`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
+                const headers = {};
+                if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+                const res = await fetch(`${API_BASE}/denuncias`, { headers });
                 
                 if (res.ok) {
                     const data = await res.json();
                     allReports = Array.isArray(data) ? data : (data.denuncias || []);
                 } else {
-                    allReports = getFallbackReports();
+                    allReports = [];
                 }
             } catch (err) {
-                console.warn('API /denuncias unreachable, using local fallback:', err);
-                allReports = getFallbackReports();
+                console.warn('API /denuncias unreachable:', err);
+                allReports = [];
             }
 
             updateKpis();
             renderReportsOnMap();
             renderDrawerList();
-        }
-
-        function getFallbackReports() {
-            return [
-                { id: 101, ticket: 'ECO-9281', categoria: 'VERTEDERO_CLANDESTINO', barrio: 'Sajonia', descripcion: 'Basura acumulada en la esquina del parque, proliferación de alimañas.', latitud: -25.2915, longitud: -57.6410, estado: 'PENDIENTE', fecha_creacion: '2026-10-12T14:30:00' },
-                { id: 102, ticket: 'ECO-8419', categoria: 'RECOLECCION_PENDIENTE', barrio: 'Recoleta', descripcion: 'Hace 3 días no pasa el camión por la cuadra.', latitud: -25.2995, longitud: -57.6012, estado: 'EN_PROCESO', fecha_creacion: '2026-10-11T10:15:00' },
-                { id: 103, ticket: 'ECO-7732', categoria: 'CONTENEDOR_DANADO', barrio: 'Las Mercedes', descripcion: 'Contenedor metálico roto sin tapa sobre Juan de Salazar.', latitud: -25.2810, longitud: -57.6180, estado: 'PENDIENTE', fecha_creacion: '2026-10-10T08:45:00' },
-                { id: 104, ticket: 'ECO-6102', categoria: 'VERTEDERO_CLANDESTINO', barrio: 'Santísima Trinidad', descripcion: 'Restos de ramas y escombros en la vereda.', latitud: -25.2710, longitud: -57.5840, estado: 'CERRADA', fecha_creacion: '2026-10-09T16:20:00' }
-            ];
         }
 
         function updateKpis() {
@@ -2002,8 +1993,9 @@
         async function submitReport(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('btnSubmitReport');
+            const originalBtnHtml = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<span>Registrando...</span>`;
+            submitBtn.innerHTML = `<span>Registrando en base de datos...</span>`;
 
             const payload = {
                 nombre_ciudadano: document.getElementById('fNombre').value.trim() || storedUser,
@@ -2014,47 +2006,45 @@
                 descripcion: document.getElementById('fDescripcion').value.trim(),
                 latitud: parseFloat(document.getElementById('fLat').value) || -25.2867,
                 longitud: parseFloat(document.getElementById('fLng').value) || -57.6333,
-                foto_url: document.getElementById('fFoto').value.trim() || null
+                foto_url: document.getElementById('fFoto').value.trim() || ""
             };
 
             const authToken = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token') || '';
-            let newTicket = 'ECO-' + Math.floor(100000 + Math.random() * 900000);
 
             try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
                 const res = await fetch(`${API_BASE}/denuncias`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
+                    headers: headers,
                     body: JSON.stringify(payload)
                 });
 
-                if (res.ok) {
-                    const resData = await res.json();
-                    if (resData.ticket) newTicket = resData.ticket;
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || errData.message || `Error del servidor (${res.status})`);
                 }
+
+                const resData = await res.json();
+                const realTicket = resData.ticket;
+
+                // Recargar reportes reales desde PostgreSQL
+                await loadReports();
+
+                // Show Success State
+                document.getElementById('modalReportFormBody').style.display = 'none';
+                document.getElementById('modalReportSuccessBody').style.display = 'block';
+                document.getElementById('createdTicketCode').textContent = realTicket;
+                submitBtn.style.display = 'none';
+
+                document.getElementById('formReport').reset();
             } catch (err) {
-                console.warn('Backend POST /denuncias unreachable, creating local fallback:', err);
+                console.error('Error al guardar denuncia:', err);
+                alert('No se pudo guardar la denuncia en la base de datos: ' + err.message);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
             }
-
-            payload.id = Date.now();
-            payload.ticket = newTicket;
-            payload.estado = 'PENDIENTE';
-            payload.fecha_creacion = new Date().toISOString();
-            allReports.unshift(payload);
-
-            updateKpis();
-            renderReportsOnMap();
-            renderDrawerList();
-
-            // Show Success State
-            document.getElementById('modalReportFormBody').style.display = 'none';
-            document.getElementById('modalReportSuccessBody').style.display = 'block';
-            document.getElementById('createdTicketCode').textContent = newTicket;
-            submitBtn.style.display = 'none';
-
-            document.getElementById('formReport').reset();
         }
 
         function copyCreatedTicket() {
