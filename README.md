@@ -13,28 +13,32 @@ Antes de comenzar, asegúrate de tener instalado:
 
 ---
 
-## 🚀 Guía de Instalación y Ejecución
+## ⚡ Inicio Rápido (Recomendado)
 
-Sigue estos pasos en orden para poner en marcha el software:
+Para levantar **todo el sistema automáticamente** (Base de Datos PostgreSQL, Servidor Backend y abrir el Frontend en el navegador):
 
-### 1. Configuración de la Base de Datos
-El sistema necesita una base de datos llamada `ruteo_db`. 
-1. Abre tu terminal de PostgreSQL y crea la base de datos:
-   ```sql
-   CREATE DATABASE ruteo_db;
-   ```
-2. Ve a la carpeta `backend/`.
-3. Ejecuta el archivo **`inicializar_db.bat`**. 
-   *Esto creará todas las tablas necesarias y configurará el usuario administrador por defecto.*
+1. Haz doble clic en el archivo **`iniciar_proyecto.bat`** (ubicado en la raíz del proyecto).
+2. El script:
+   - Verifica e inicia PostgreSQL en el puerto `5432` si no está corriendo.
+   - Compila el código Java del backend si hubo cambios.
+   - Inicia el servidor HTTP en el puerto `8080`.
+   - Abre automáticamente la pantalla de login en tu navegador predeterminado.
 
-### 2. Compilación y Arranque del Servidor (Backend)
-1. Permanece en la carpeta `backend/`.
-2. Ejecuta el archivo **`compilar.bat`**.
-   *Este script descargará automáticamente las librerías necesarias (PostgreSQL, Gson, BCrypt), compilará el código Java y levantará el servidor en `http://localhost:8080`.*
+---
 
-### 3. Acceso al Sistema (Frontend)
-1. Una vez que el backend esté corriendo (verás un mensaje de "Servidor iniciado"), ve a la carpeta `frontend/`.
-2. Abre el archivo **`login1.html`** en tu navegador.
+## 🚀 Guía de Ejecución Manual (Paso a Paso)
+
+Si prefieres ejecutar cada componente por separado:
+
+### 1. Base de Datos
+- Inicia PostgreSQL en tu sistema (puerto `5432`, base de datos `ruteo_db`).
+- Para inicializar o resetear tablas: ejecuta `database/inicializar_db.bat`.
+
+### 2. Backend (Java)
+- Entra en la carpeta `backend/` y ejecuta **`compilar.bat`**.
+
+### 3. Frontend (Navegador)
+- Abre tu navegador en **`http://localhost:8080/login1.html`**.
 
 ---
 
