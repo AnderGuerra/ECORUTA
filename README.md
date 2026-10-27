@@ -59,28 +59,37 @@ graph TD
 
 ---
 
-## 🚀 Guía de Instalación y Ejecución
+## ⚡ Inicio Rápido (Recomendado)
 
-### 1. Base de Datos PostgreSQL
+### Opción 1: Inicio Rápido Automatizado
+Para levantar **todo el sistema automáticamente** (Base de Datos PostgreSQL, Servidor Backend y abrir el Frontend en el navegador):
+1. Haz doble clic en el archivo **`iniciar_proyecto.bat`** (ubicado en la raíz del proyecto).
+2. El script verificará PostgreSQL, compilará el backend e iniciará el sistema.
+
+---
+
+### Opción 2: Inicio Manual por Módulos
+
+#### 1. Base de Datos PostgreSQL
 1. Asegúrate de tener PostgreSQL ejecutándose en el puerto `5432`:
    ```sql
    CREATE DATABASE ruteo_db;
    ```
 2. Ejecuta el esquema de inicialización:
    ```bash
-   cd backend
+   cd database
    inicializar_db.bat
    ```
 
-### 2. Backend Java
+#### 2. Backend Java
 1. Compila y ejecuta el backend:
    ```bash
    cd backend
    compilar.bat
    ```
-   *El backend quedará escuchando en `http://localhost:8085` (o `8080` según configuración).*
+   *El backend quedará escuchando en `http://localhost:8085`.*
 
-### 3. Agente de Validación Anti-Spam
+#### 3. Agente de Validación Anti-Spam & IA Vision
 1. Configura el archivo de entorno en `agent/`:
    ```bash
    cd agent
@@ -90,12 +99,7 @@ graph TD
    ```
    *El agente iniciará en `http://localhost:5050`.*
 
-2. Ejecución de pruebas del flujo de reportes:
-   ```bash
-   npm run test:report-flow
-   ```
-
-### 4. Bot de Telegram (Opcional para Choferes)
+#### 4. Bot de Telegram para Choferes
 ```bash
 cd bot
 copy .env.example .env
@@ -103,10 +107,11 @@ npm install
 npm start
 ```
 
-### 5. Frontend
+#### 5. Frontend
 Abre directamente en tu navegador web:
 - **Portal Ciudadano EcoRuta**: `frontend/ciudadano.html`
-- **Panel Administrativo / Gestor**: `frontend/index.html` (o ingresa mediante `frontend/login1.html`)
+- **Panel Administrativo / Gestor**: `frontend/index.html` (o `frontend/login1.html`)
+- **Panel Chofer**: `frontend/chofer.html`
 
 ---
 

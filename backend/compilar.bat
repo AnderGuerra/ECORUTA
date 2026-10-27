@@ -53,7 +53,7 @@ REM Configurar variables de entorno por defecto
 if "%DB_PASSWORD%"=="" set "DB_PASSWORD=Zelaya11"
 if "%DB_USER%"=="" set "DB_USER=postgres"
 if "%DB_NAME%"=="" set "DB_NAME=ruteo_db"
-echo ✅ Credenciales DB: Usuario=%DB_USER% ^| Password configurada
+echo ✅ Credenciales DB: Usuario=%DB_USER% - Password configurada
 echo.
 
 REM Verificar que la base de datos exista (solo avisa, no la crea ni la borra)

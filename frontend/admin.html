@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Usuarios - NEXO Super Admin</title>
+    <title>Gestión de Usuarios - EcoRuta Super Admin</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,37 +16,36 @@
 
     <!-- Design System CSS -->
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/glass-dialogs.js"></script>
 
     <style>
         /* =========================================================
-           NEXO SUPER ADMIN - PREMIUM AESTHETIC DESIGN SYSTEM
+           EcoRuta SUPER ADMIN - PREMIUM GLASSMORHPIC SYSTEM
            ========================================================= */
         :root {
-            --bg-base: #050508;
-            --bg-gradient: radial-gradient(circle at 50% 0%, #151828 0%, #050508 70%);
-
-            --card-bg: rgba(16, 18, 27, 0.65);
-            --card-border: 1px solid rgba(255, 255, 255, 0.04);
-            --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-
-            --primary-accent: #3b82f6;
-            /* Electric Blue */
-            --primary-glow: rgba(59, 130, 246, 0.25);
-            --gold-accent: #fbbf24;
-            /* Premium Gold */
-            --gold-glow: rgba(251, 191, 36, 0.15);
-
+            --bg-base: #061710;
+            --bg-gradient: radial-gradient(circle at 50% 0%, #0f3d2e 0%, #061710 75%);
+            
+            --card-bg: rgba(15, 45, 34, 0.55);
+            --card-border: 1px solid rgba(125, 255, 196, 0.16);
+            --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(125, 255, 196, 0.1);
+            
+            --primary-accent: #3fa87d; /* Emerald */
+            --primary-glow: rgba(63, 168, 125, 0.35);
+            --gold-accent: #7dffc4; /* Mint accent */
+            --gold-glow: rgba(125, 255, 196, 0.25);
+            
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --text-dark: #cbd5e1;
-
+            
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
 
-            --input-bg: rgba(255, 255, 255, 0.03);
-            --input-border: rgba(255, 255, 255, 0.08);
-            --input-focus: rgba(59, 130, 246, 0.4);
+            --input-bg: rgba(10, 28, 21, 0.65);
+            --input-border: rgba(125, 255, 196, 0.2);
+            --input-focus: rgba(63, 168, 125, 0.5);
         }
 
         body.super-admin-theme {
@@ -92,26 +91,13 @@
         }
 
         @keyframes pulseGlow {
-            0% {
-                transform: scale(1) translate(0, 0);
-                opacity: 0.3;
-            }
-
-            100% {
-                transform: scale(1.1) translate(-20px, 20px);
-                opacity: 0.5;
-            }
+            0% { transform: scale(1) translate(0, 0); opacity: 0.3; }
+            100% { transform: scale(1.1) translate(-20px, 20px); opacity: 0.5; }
         }
 
         /* Typography & Globals */
-        h1,
-        h2,
-        h3 {
-            margin: 0;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-
+        h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.5px; }
+        
         .header {
             background: rgba(10, 12, 16, 0.8);
             backdrop-filter: blur(20px);
@@ -141,7 +127,6 @@
             font-size: 28px;
             background: linear-gradient(135deg, var(--gold-accent), #f59e0b);
             -webkit-background-clip: text;
-            background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 4px 12px var(--gold-glow));
         }
@@ -196,15 +181,13 @@
             border-color: rgba(255, 255, 255, 0.2);
         }
 
-        .btn-glass[onclick="logout()"],
-        .btn-glass.btn-logout {
+        .btn-glass[onclick="logout()"] {
             background: rgba(239, 68, 68, 0.1);
             border-color: rgba(239, 68, 68, 0.2);
             color: #f87171 !important;
         }
 
-        .btn-glass[onclick="logout()"]:hover,
-        .btn-glass.btn-logout:hover {
+        .btn-glass[onclick="logout()"]:hover {
             background: rgba(239, 68, 68, 0.2);
             box-shadow: 0 8px 20px rgba(239, 68, 68, 0.15);
         }
@@ -242,11 +225,8 @@
         .stat-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
         }
 
         .stat-card:hover {
@@ -410,42 +390,8 @@
             backdrop-filter: blur(20px);
             border: var(--card-border);
             border-radius: 24px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+            overflow: hidden;
             box-shadow: var(--card-shadow);
-        }
-
-        @media (max-width: 768px) {
-            .header {
-                padding: 14px 16px;
-            }
-            .header-content {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 12px;
-            }
-            .admin-header-badge {
-                margin-left: 0;
-            }
-            .main-container {
-                padding: 0 16px;
-                margin: 20px auto;
-            }
-            .toolbar-card {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 12px;
-                padding: 16px;
-            }
-            .search-box {
-                max-width: 100%;
-            }
-            .filters-group {
-                flex-direction: column;
-            }
-            .client-table {
-                min-width: 600px;
-            }
         }
 
         .client-table {
@@ -517,6 +463,12 @@
             border: 1px solid rgba(139, 92, 246, 0.25);
         }
 
+        .badge-chofer {
+            background: rgba(14, 165, 233, 0.12);
+            color: #38bdf8;
+            border: 1px solid rgba(14, 165, 233, 0.25);
+        }
+
         .badge-status {
             padding: 6px 12px;
             border-radius: 20px;
@@ -532,7 +484,7 @@
         .badge-active {
             color: var(--success);
         }
-
+        
         .badge-active i {
             color: var(--success);
             text-shadow: 0 0 8px var(--success);
@@ -560,10 +512,7 @@
         .slider-sm {
             position: absolute;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background-color: rgba(255, 255, 255, 0.1);
             transition: .3s;
             border-radius: 22px;
@@ -582,12 +531,12 @@
             border-radius: 50%;
         }
 
-        input:checked+.slider-sm {
+        input:checked + .slider-sm {
             background-color: rgba(16, 185, 129, 0.2);
             border-color: rgba(16, 185, 129, 0.4);
         }
 
-        input:checked+.slider-sm:before {
+        input:checked + .slider-sm:before {
             transform: translateX(18px);
             background-color: var(--success);
             box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
@@ -623,10 +572,7 @@
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(8px);
             z-index: 2000;
@@ -636,13 +582,8 @@
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .modal-container {
@@ -652,32 +593,44 @@
             padding: 32px;
             width: 90%;
             max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            overflow-x: hidden;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             position: relative;
-            overflow: hidden;
             animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        }
+
+        .modal-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .modal-container::-webkit-scrollbar-track {
+            background: transparent;
+            margin: 18px 0;
+        }
+
+        .modal-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .modal-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
         }
 
         .modal-container::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
+            top: 0; left: 0; width: 100%; height: 4px;
             background: linear-gradient(90deg, var(--primary-accent), var(--gold-accent));
         }
 
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(40px) scale(0.95);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            from { opacity: 0; transform: translateY(40px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .modal-container h2 {
@@ -692,21 +645,62 @@
         .control-input {
             width: 100%;
             padding: 14px 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #0f121b;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 12px;
-            color: #fff;
+            color: #f8fafc;
             font-family: inherit;
             font-size: 14px;
             transition: all 0.3s;
             box-sizing: border-box;
+            color-scheme: dark;
         }
 
         .control-input:focus {
             outline: none;
             border-color: var(--primary-accent);
-            background: rgba(255, 255, 255, 0.06);
+            background: #141a27;
             box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        /* Estilo explícito para dropdowns (select y option) en formularios de creación y edición */
+        select.control-input,
+        .modal-container select {
+            background-color: #0f121b !important;
+            color: #f8fafc !important;
+            color-scheme: dark;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.293a1 1 0 0 0 1.506 0L13 5.732a1 1 0 1 0-1.506-1.464L8 9.568 3.754 5.268a1 1 0 1 0-1.506 1.464l5.247 5.561z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 42px;
+        }
+
+        /* Opciones del menú desplegable: fondo oscuro uniforme y texto blanco brillante visible SIEMPRE */
+        select.control-input option,
+        .modal-container select option,
+        select.select-filter option {
+            background-color: #161c28 !important;
+            color: #f8fafc !important;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        select.control-input option:checked,
+        select.control-input option[selected],
+        .modal-container select option:checked,
+        .modal-container select option[selected] {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+
+        select.control-input option:hover,
+        .modal-container select option:hover {
+            background-color: #1d4ed8 !important;
+            color: #ffffff !important;
         }
 
         .btn-secondary-outline {
@@ -741,42 +735,23 @@
             width: 8px;
             height: 8px;
         }
-
         ::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.2);
         }
-
         ::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.15);
             border-radius: 4px;
         }
-
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.25);
         }
 
         @media (max-width: 768px) {
-            .header {
-                padding: 16px 20px;
-            }
-
-            .main-container {
-                padding: 0 20px;
-                margin: 20px auto;
-            }
-
-            .toolbar-card {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .search-box {
-                max-width: 100%;
-            }
-
-            .filters-group {
-                flex-direction: column;
-            }
+            .header { padding: 16px 20px; }
+            .main-container { padding: 0 20px; margin: 20px auto; }
+            .toolbar-card { flex-direction: column; align-items: stretch; }
+            .search-box { max-width: 100%; }
+            .filters-group { flex-direction: column; }
         }
     </style>
 </head>
@@ -786,17 +761,19 @@
     <div class="header">
         <div class="header-content">
             <div class="brand">
-                <i class="fas fa-cubes logo-icon"></i>
+                <i class="fas fa-recycle logo-icon"></i>
                 <div class="brand-text">
-                    <h1>NEXO</h1>
+                    <h1>EcoRuta</h1>
                     <span>Super Admin Center</span>
                 </div>
                 <span class="admin-header-badge"><i class="fas fa-shield-alt"></i> Panel de Control</span>
             </div>
 
             <div class="header-actions">
-                <button class="btn-glass btn-logout" onclick="logout()" style="color:var(--danger); border-color:var(--danger);"><i
-                        class="fas fa-sign-out-alt"></i> Salir</button>
+                <a href="index.html" class="btn-glass" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-route"></i> Gestor</a>
+                <a href="chofer.html" class="btn-glass" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-truck"></i> Chofer</a>
+                <a href="ciudadano.html" class="btn-glass" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-bullhorn"></i> Ciudadano</a>
+                <button class="btn-glass" onclick="logout()" style="color:var(--danger); border-color:var(--danger);"><i class="fas fa-sign-out-alt"></i> Salir</button>
             </div>
         </div>
     </div>
@@ -839,8 +816,7 @@
         <div class="toolbar-card">
             <div class="search-box">
                 <i class="fas fa-search search-icon"></i>
-                <input type="text" id="buscadorUsuario" class="search-input"
-                    placeholder="Buscar por usuario o nombre..." oninput="filtrarUsuarios()">
+                <input type="text" id="buscadorUsuario" class="search-input" placeholder="Buscar por usuario o nombre..." oninput="filtrarUsuarios()">
             </div>
 
             <div class="filters-group">
@@ -848,6 +824,7 @@
                     <option value="todos">Todos los roles</option>
                     <option value="superadmin">Super Admin</option>
                     <option value="gestor">Gestor rutas+denuncias</option>
+                    <option value="chofer">Chofer</option>
                     <option value="ciudadano">Ciudadano</option>
                 </select>
 
@@ -859,8 +836,7 @@
             </div>
 
             <div class="actions-group">
-                <button class="btn-primary" onclick="abrirModalCrearUsuario()"
-                    style="height:38px; padding:8px 18px; font-size:13px; font-weight:600;">
+                <button class="btn-primary" onclick="abrirModalCrearUsuario()" style="height:38px; padding:8px 18px; font-size:13px; font-weight:600;">
                     <i class="fas fa-user-plus"></i> Crear Usuario
                 </button>
             </div>
@@ -881,15 +857,13 @@
                 </thead>
                 <tbody id="cuerpoTablaUsuarios">
                     <tr>
-                        <td colspan="6" style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin"></i>
-                            Cargando usuarios...</td>
+                        <td colspan="6" style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin"></i> Cargando usuarios...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <div class="footer"><i class="fas fa-shield-alt"></i> NEXO Super Admin Module · Gestión Centralizada de Usuarios
-        </div>
+        <div class="footer"><i class="fas fa-shield-alt"></i> EcoRuta Super Admin Module · Gestión Centralizada de Usuarios</div>
     </div>
 
     <!-- MODAL CREAR USUARIO -->
@@ -901,40 +875,28 @@
             </div>
             <form id="formCrearUsuario" onsubmit="guardarNuevoUsuario(event)">
                 <div style="margin-bottom:16px;">
-                    <label
-                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre
-                        de Usuario (Username)</label>
-                    <input type="text" id="nuevoUsername" class="control-input" placeholder="Ej: jsmith" required
-                        style="width:100%; box-sizing:border-box;">
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre de Usuario (Username)</label>
+                    <input type="text" id="nuevoUsername" class="control-input" placeholder="Ej: jsmith" required style="width:100%; box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label
-                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre
-                        Completo</label>
-                    <input type="text" id="nuevoNombre" class="control-input" placeholder="Ej: Juan Smith" required
-                        style="width:100%; box-sizing:border-box;">
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre Completo</label>
+                    <input type="text" id="nuevoNombre" class="control-input" placeholder="Ej: Juan Smith" required style="width:100%; box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label
-                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Rol
-                        del Sistema</label>
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Rol del Sistema</label>
                     <select id="nuevoRol" class="control-input" style="width:100%; box-sizing:border-box;">
                         <option value="ciudadano">Ciudadano (denuncias)</option>
+                        <option value="chofer">Chofer (rutas asignadas)</option>
                         <option value="gestor">Gestor rutas + denuncias</option>
                         <option value="superadmin">Super Admin</option>
                     </select>
                 </div>
                 <div style="margin-bottom:20px;">
-                    <label
-                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Contraseña
-                        Inicial</label>
-                    <input type="password" id="nuevaPassword" class="control-input" placeholder="Mínimo 6 caracteres"
-                        required minlength="4" style="width:100%; box-sizing:border-box;">
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Contraseña Inicial</label>
+                    <input type="password" id="nuevaPassword" class="control-input" placeholder="Mínimo 6 caracteres" required minlength="4" style="width:100%; box-sizing:border-box;">
                 </div>
-                <div
-                    style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
-                    <button type="button" class="btn-secondary-outline"
-                        onclick="cerrarModalCrearUsuario()">Cancelar</button>
+                <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
+                    <button type="button" class="btn-secondary-outline" onclick="cerrarModalCrearUsuario()">Cancelar</button>
                     <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Crear Usuario</button>
                 </div>
             </form>
@@ -951,41 +913,31 @@
             <form id="formEditarUsuario" onsubmit="guardarEdicionUsuario(event)">
                 <input type="hidden" id="editUserId">
                 <div style="margin-bottom:16px;">
-                    <label
-                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Username</label>
-                    <input type="text" id="editUsername" class="control-input" readonly
-                        style="width:100%; box-sizing:border-box; opacity:0.7; background:rgba(0,0,0,0.05);">
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Username</label>
+                    <input type="text" id="editUsername" class="control-input" readonly style="width:100%; box-sizing:border-box; opacity:0.7; background:rgba(0,0,0,0.05);">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label
-                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre
-                        Completo</label>
-                    <input type="text" id="editNombre" class="control-input" required
-                        style="width:100%; box-sizing:border-box;">
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre Completo</label>
+                    <input type="text" id="editNombre" class="control-input" required style="width:100%; box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label
-                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Rol
-                        del Sistema</label>
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Rol del Sistema</label>
                     <select id="editRol" class="control-input" style="width:100%; box-sizing:border-box;">
                         <option value="ciudadano">Ciudadano (denuncias)</option>
+                        <option value="chofer">Chofer (rutas asignadas)</option>
                         <option value="gestor">Gestor rutas + denuncias</option>
                         <option value="superadmin">Super Admin</option>
                     </select>
                 </div>
                 <div style="margin-bottom:20px;">
-                    <label
-                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Estado
-                        de la Cuenta</label>
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Estado de la Cuenta</label>
                     <select id="editActivo" class="control-input" style="width:100%; box-sizing:border-box;">
                         <option value="true">Activo (Acceso Permitido)</option>
                         <option value="false">Inactivo (Acceso Bloqueado)</option>
                     </select>
                 </div>
-                <div
-                    style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
-                    <button type="button" class="btn-secondary-outline"
-                        onclick="cerrarModalEditarUsuario()">Cancelar</button>
+                <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
+                    <button type="button" class="btn-secondary-outline" onclick="cerrarModalEditarUsuario()">Cancelar</button>
                     <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Guardar Cambios</button>
                 </div>
             </form>
@@ -1002,24 +954,15 @@
             <form id="formResetPass" onsubmit="guardarResetPass(event)">
                 <input type="hidden" id="resetUserId">
                 <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
-                    Estás cambiando la contraseña para el usuario <strong id="resetUserSpan"
-                        style="color:var(--text-main);"></strong>.
+                    Estás cambiando la contraseña para el usuario <strong id="resetUserSpan" style="color:var(--text-main);"></strong>.
                 </p>
                 <div style="margin-bottom:20px;">
-                    <label
-                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nueva
-                        Contraseña</label>
-                    <input type="password" id="resetPasswordInput" class="control-input"
-                        placeholder="Ingrese nueva contraseña..." required minlength="4"
-                        style="width:100%; box-sizing:border-box;">
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nueva Contraseña</label>
+                    <input type="password" id="resetPasswordInput" class="control-input" placeholder="Ingrese nueva contraseña..." required minlength="4" style="width:100%; box-sizing:border-box;">
                 </div>
-                <div
-                    style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
-                    <button type="button" class="btn-secondary-outline"
-                        onclick="cerrarModalResetPass()">Cancelar</button>
-                    <button type="submit" class="btn-primary"
-                        style="background:var(--gold-accent); border-color:var(--gold-accent);"><i
-                            class="fas fa-key"></i> Actualizar Contraseña</button>
+                <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
+                    <button type="button" class="btn-secondary-outline" onclick="cerrarModalResetPass()">Cancelar</button>
+                    <button type="submit" class="btn-primary" style="background:var(--gold-accent); border-color:var(--gold-accent);"><i class="fas fa-key"></i> Actualizar Contraseña</button>
                 </div>
             </form>
         </div>
@@ -1030,7 +973,7 @@
 
         // Auth Helper
         async function fetchWithAuth(url, options = {}) {
-            const token = localStorage.getItem('nexo_token');
+            const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
             if (!options.headers) options.headers = {};
             options.headers['Authorization'] = `Bearer ${token}`;
             const response = await fetch(url, options);
@@ -1043,8 +986,8 @@
         }
 
         function verifySuperAdmin() {
-            const token = localStorage.getItem('nexo_token');
-            const rol = localStorage.getItem('nexo_rol');
+            const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
+            const rol = (localStorage.getItem('ecoruta_rol') || localStorage.getItem('nexo_rol') || '').toLowerCase();
             if (!token) {
                 window.location.href = 'login1.html';
             } else if (rol !== 'superadmin') {
@@ -1107,6 +1050,7 @@
             const badgeFor = (rol) => {
                 if (rol === 'superadmin') return `<span class="badge-role badge-superadmin"><i class="fas fa-crown"></i> Super Admin</span>`;
                 if (rol === 'ciudadano') return `<span class="badge-role badge-ciudadano"><i class="fas fa-user"></i> Ciudadano</span>`;
+                if (rol === 'chofer') return `<span class="badge-role badge-chofer"><i class="fas fa-truck"></i> Chofer</span>`;
                 return `<span class="badge-role badge-gestor"><i class="fas fa-route"></i> Gestor</span>`;
             };
             tbody.innerHTML = lista.map(u => {
@@ -1197,7 +1141,7 @@
             document.getElementById('editUserId').value = user.id;
             document.getElementById('editUsername').value = user.username;
             document.getElementById('editNombre').value = user.nombre || '';
-            document.getElementById('editRol').value = (user.rol === 'admin' ? 'gestor' : (user.rol || 'gestor'));
+                document.getElementById('editRol').value = (user.rol === 'admin' ? 'gestor' : (user.rol || 'gestor'));
             document.getElementById('editActivo').value = user.activo ? 'true' : 'false';
             document.getElementById('modalEditarUsuario').style.display = 'flex';
         }

@@ -4,20 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script>
-        if (!localStorage.getItem('nexo_token')) {
+        if (!localStorage.getItem('ecoruta_token') && !localStorage.getItem('nexo_token')) {
             window.location.href = 'login1.html';
         }
         if (localStorage.getItem('darkMode') === 'enabled') {
             document.documentElement.classList.add('dark-mode');
         }
     </script>
-    <title>NEXO - Gestión de Rutas | Dashboard Inteligente</title>
+    <title>EcoRuta - Gestión de Rutas | Dashboard Inteligente</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/glass-dialogs.js"></script>
     <style>
         * {
             margin: 0;
@@ -26,30 +26,30 @@
         }
 
         :root {
-            --primary-dark: #4A59E6;
-            --primary: #5B6BFF;
-            --secondary: #3DD7E5;
-            --secondary-dark: #2BC0D0;
-            --bg-light: #E2E6EE;
-            --card-white: #FFFFFF;
-            --text-dark: #111827;
-            --text-muted: #4B5563;
-            --border-light: #CBD1DC;
+            --primary-dark: #0f3d2e;
+            --primary: #2e9e5b;
+            --secondary: #3fa87d;
+            --secondary-dark: #237a46;
+            --bg-light: #f0f7f4;
+            --card-white: rgba(255, 255, 255, 0.88);
+            --text-dark: #0d281e;
+            --text-muted: #3a6050;
+            --border-light: rgba(63, 168, 125, 0.22);
             --success: #10B981;
             --danger: #EF4444;
             --whatsapp: #25D366;
             --telegram: #0088cc;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
-            --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+            --shadow-md: 0 8px 32px rgba(15, 61, 46, 0.08);
             --transition: all 0.2s ease;
         }
 
         body.dark-mode {
-            --bg-light: #0A0B0F;
-            --card-white: #14151C;
-            --text-dark: #F2F4F8;
-            --text-muted: #9AA0AE;
-            --border-light: #2A2D38;
+            --bg-light: #071912;
+            --card-white: rgba(14, 38, 29, 0.68);
+            --text-dark: #f2fbf6;
+            --text-muted: #8dbda9;
+            --border-light: rgba(125, 255, 196, 0.18);
             --shadow-sm: 0 1px 0 rgba(255,255,255,0.02) inset, 0 1px 2px rgba(0,0,0,0.4);
             --shadow-md: 0 8px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.03) inset;
         }
@@ -236,7 +236,7 @@
 
         .asignacion-panel select {
             width: 100%;
-            padding: 10px 12px;
+            padding: 10px 14px;
             border-radius: 16px;
             border: 1px solid var(--border-light);
             background: var(--card-white);
@@ -247,10 +247,53 @@
             transition: var(--transition);
         }
 
-        .asignacion-panel select:focus {
+        .asignacion-panel select:focus,
+        #selectMovilDestino:focus {
             outline: none;
             border-color: var(--secondary);
             box-shadow: 0 0 0 2px rgba(245, 176, 65, 0.2);
+        }
+
+        #selectMovilDestino {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            border: 1px solid var(--border-light);
+            background: var(--card-white);
+            color: var(--text-dark);
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .asignacion-panel select option,
+        #selectMovilDestino option {
+            background-color: #ffffff;
+            color: #0d281e;
+            padding: 10px 14px;
+        }
+
+        body.dark-mode .asignacion-panel select,
+        body.dark-mode #selectMovilDestino {
+            color-scheme: dark;
+            background-color: #0e261d !important;
+            color: #f2fbf6 !important;
+        }
+
+        body.dark-mode .asignacion-panel select option,
+        body.dark-mode #selectMovilDestino option {
+            background-color: #0e261d !important;
+            color: #f2fbf6 !important;
+            padding: 10px 14px;
+        }
+
+        body.dark-mode .asignacion-panel select option:checked,
+        body.dark-mode #selectMovilDestino option:checked {
+            background-color: #237a46 !important;
+            color: #ffffff !important;
+            font-weight: 600;
         }
 
         /* Lista de clientes */
@@ -458,7 +501,7 @@
     <div class="header">
         <div class="logo-area">
             <div class="logo-icon"><i class="fas fa-route"></i></div>
-            <h1><i class="fas fa-truck-fast" style="color: #F5B041; margin-right: 8px;"></i> NEXO · Gestión de Rutas
+            <h1><i class="fas fa-truck-fast" style="color: #7dffc4; margin-right: 8px;"></i> EcoRuta · Gestión de Rutas
             </h1>
         </div>
         <button class="btn-close-glass" onclick="window.close()">
@@ -505,7 +548,7 @@
 
         // ========== FUNCIONES DE AUTENTICACIÓN ==========
         async function fetchWithAuth(url, options = {}) {
-            const token = localStorage.getItem('nexo_token');
+            const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
             const headers = {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -842,7 +885,7 @@
             }
 
             // Armar mensaje formateado para Telegram
-            let mensaje = `🚚 *NEXO EcoRuta - HOJA DE RUTA MÓVIL ${movilIdx + 1}* 🚚\n\n`;
+            let mensaje = `🚚 *EcoRuta - HOJA DE RUTA MÓVIL ${movilIdx + 1}* 🚚\n\n`;
             mensaje += `👤 *Chofer:* ${payload.chofer.nombre}\n`;
             mensaje += `📱 *Teléfono:* \`${payload.chofer.telefono}\`\n`;
             mensaje += `🚛 *Móvil:* ${payload.vehiculo.nombre} (${payload.vehiculo.chapa})\n`;

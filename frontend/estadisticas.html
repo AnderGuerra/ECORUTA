@@ -5,19 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
-        if (!localStorage.getItem('nexo_token')) {
+        if (!localStorage.getItem('ecoruta_token') && !localStorage.getItem('nexo_token')) {
             window.location.href = 'login1.html';
         }
         if (localStorage.getItem('darkMode') === 'enabled') {
             document.documentElement.classList.add('dark-mode');
         }
     </script>
-    <title>NEXO | Dashboard de Entregas</title>
+    <title>EcoRuta | Dashboard de Recolección</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/glass-dialogs.js"></script>
     <style>
         * {
             margin: 0;
@@ -26,31 +27,31 @@
         }
 
         :root {
-            --primary: #5B6BFF;
-            --primary-hover: #7886FF;
-            --primary-dark: #4A59E6;
-            --secondary: #3DD7E5;
-            --tertiary: #F5D547;
+            --primary: #2e9e5b;
+            --primary-hover: #3eb56f;
+            --primary-dark: #0f3d2e;
+            --secondary: #3fa87d;
+            --tertiary: #a8e063;
             --success: #2BE08C;
             --danger: #FF3A5C;
             --warning: #F5D547;
             --info: #3DD7E5;
-            --bg-light: #E2E6EE;
-            --card-white: #FFFFFF;
-            --text-dark: #111827;
-            --text-muted: #4B5563;
-            --border-light: #CBD1DC;
+            --bg-light: #f0f7f4;
+            --card-white: rgba(255, 255, 255, 0.88);
+            --text-dark: #0d281e;
+            --text-muted: #3a6050;
+            --border-light: rgba(63, 168, 125, 0.22);
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
-            --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+            --shadow-md: 0 8px 32px rgba(15, 61, 46, 0.08);
             --transition: all 0.2s cubic-bezier(0.2, 0.6, 0.2, 1);
         }
 
         body.dark-mode {
-            --bg-light: #0A0B0F;
-            --card-white: #14151C;
-            --text-dark: #F2F4F8;
-            --text-muted: #9AA0AE;
-            --border-light: #2A2D38;
+            --bg-light: #071912;
+            --card-white: rgba(14, 38, 29, 0.68);
+            --text-dark: #f2fbf6;
+            --text-muted: #8dbda9;
+            --border-light: rgba(125, 255, 196, 0.18);
             --shadow-sm: 0 1px 0 rgba(255,255,255,0.02) inset, 0 1px 2px rgba(0,0,0,0.4);
             --shadow-md: 0 8px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.03) inset;
         }
@@ -144,6 +145,35 @@
         .period-select:hover, .date-picker:hover, .btn-glass:hover {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(91, 107, 255, 0.12);
+        }
+
+        .period-select {
+            color-scheme: light;
+        }
+
+        .period-select option {
+            background-color: #ffffff;
+            color: #0d281e;
+            padding: 10px 14px;
+        }
+
+        body.dark-mode .period-select,
+        html.dark-mode .period-select {
+            color-scheme: dark;
+            background-color: #0e261d !important;
+            color: #f2fbf6 !important;
+        }
+
+        body.dark-mode .period-select option,
+        html.dark-mode .period-select option {
+            background-color: #0e261d !important;
+            color: #f2fbf6 !important;
+        }
+
+        body.dark-mode .period-select option:checked,
+        html.dark-mode .period-select option:checked {
+            background-color: #237a46 !important;
+            color: #ffffff !important;
         }
 
         .date-picker { color-scheme: light; }
@@ -348,7 +378,12 @@
 <body>
 
     <div class="loading-overlay" id="globalLoader">
-        <div class="loader">
+        <!-- Loader activo: carga1.gif -->
+        <div class="loader-gif-container">
+            <img src="assets/img/carga1.gif" alt="Cargando EcoRuta..." class="loader-gif">
+        </div>
+        <!-- Loader previo (camión animado SVG/CSS) preservado sin borrar -->
+        <div class="loader loader-truck-backup" style="display: none;">
             <div class="truckWrapper">
                 <div class="truckBody">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 198 93" class="trucksvg">
@@ -383,7 +418,7 @@
     <div class="header">
         <div class="logo-area">
             <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
-            <h1>NEXO · Analytics</h1>
+            <h1>EcoRuta · Analytics</h1>
         </div>
         <div class="header-controls">
             <select id="selectPeriodo" class="period-select" onchange="onPeriodoChange()">
@@ -504,7 +539,7 @@
     <script>
         // ========== TOKEN Y AUTENTICACIÓN ==========
         async function fetchWithAuth(url, options = {}) {
-            const token = localStorage.getItem('nexo_token');
+            const token = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token');
             if (!options.headers) options.headers = {};
             options.headers['Authorization'] = `Bearer ${token}`;
             const response = await fetch(url, options);
@@ -520,8 +555,8 @@
         function resetTimer() {
             clearTimeout(inactivityTimer);
             inactivityTimer = setTimeout(() => {
-                localStorage.removeItem('nexo_user');
-                localStorage.removeItem('nexo_token');
+                localStorage.removeItem('ecoruta_user'); localStorage.removeItem('nexo_user');
+                localStorage.removeItem('ecoruta_token'); localStorage.removeItem('nexo_token');
                 alert("Sesión expirada por inactividad.");
                 window.location.href = 'login1.html';
             }, 5 * 60 * 1000);
