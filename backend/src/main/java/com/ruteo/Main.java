@@ -318,6 +318,7 @@ public class Main {
         }
     }
 
+    @SuppressWarnings("unused")
     private static void loadDefaultClients(Connection conn) {
         String[] paths = {"database/import.sql", "import.sql", "../database/import.sql"};
         File sqlFile = null;
@@ -2096,9 +2097,9 @@ public class Main {
             String observacion = json.has("observacion_cierre") ? json.get("observacion_cierre").getAsString()
                     : (json.has("observaciones") ? json.get("observaciones").getAsString() : "");
 
-            try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-                String sql = "INSERT INTO denuncias (ticket, nombre_ciudadano, telefono, descripcion, categoria, barrio, direccion_referencia, latitud, longitud, foto_url, estado, observacion_cierre, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id";
-                PreparedStatement ps = conn.prepareStatement(sql);
+            try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+                 PreparedStatement ps = conn.prepareStatement(
+                         "INSERT INTO denuncias (ticket, nombre_ciudadano, telefono, descripcion, categoria, barrio, direccion_referencia, latitud, longitud, foto_url, estado, observacion_cierre, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id")) {
                 ps.setString(1, ticket);
                 ps.setString(2, nombre);
                 ps.setString(3, telefono);
@@ -2111,19 +2112,16 @@ public class Main {
                 ps.setString(10, foto);
                 ps.setString(11, estado);
                 ps.setString(12, observacion);
-                if (userId != null) {
-                    ps.setInt(13, userId);
-                } else {
-                    ps.setNull(13, java.sql.Types.INTEGER);
+                ps.setInt(13, userId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    int id = rs.next() ? rs.getInt(1) : 0;
+                    Map<String, Object> resp = new HashMap<>();
+                    resp.put("id", id);
+                    resp.put("ticket", ticket);
+                    resp.put("estado", estado);
+                    resp.put("observacion", observacion);
+                    sendResponse(exchange, 201, gson.toJson(resp));
                 }
-                ResultSet rs = ps.executeQuery();
-                int id = rs.next() ? rs.getInt(1) : 0;
-                Map<String, Object> resp = new HashMap<>();
-                resp.put("id", id);
-                resp.put("ticket", ticket);
-                resp.put("estado", estado);
-                resp.put("observacion", observacion);
-                sendResponse(exchange, 201, gson.toJson(resp));
             }
         }
 
@@ -2204,8 +2202,7 @@ public class Main {
             }
             if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
+                    String body = readRequestBody(exchange);
                     JsonObject json = JsonParser.parseString(body).getAsJsonObject();
 
                     if (!json.has("denuncia_id") || json.get("denuncia_id").isJsonNull()) {
@@ -2317,7 +2314,7 @@ public class Main {
                                 double distTotal = rsRuta.getDouble("distancia_total");
                                 int tiempoEstimado = rsRuta.getInt("tiempo_estimado");
                                 String jsonStr = rsRuta.getString("clientes_json");
-                                List<Map<String, Object>> clientesList = gson.fromJson(jsonStr, List.class);
+                                List<Map<String, Object>> clientesList = parseJsonList(jsonStr);
                                 if (clientesList == null) clientesList = new ArrayList<>();
 
                                 // Calcular distancia desde la ultima parada actual hasta el nuevo punto
@@ -2550,8 +2547,7 @@ public class Main {
         }
 
         private void handleCreate(HttpExchange exchange) throws IOException, SQLException {
-            String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                    .lines().collect(Collectors.joining("\n"));
+            String body = readRequestBody(exchange);
             JsonObject json;
             try {
                 json = JsonParser.parseString(body).getAsJsonObject();
@@ -2612,8 +2608,7 @@ public class Main {
         }
 
         private void handleUpdate(HttpExchange exchange) throws IOException, SQLException {
-            String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                    .lines().collect(Collectors.joining("\n"));
+            String body = readRequestBody(exchange);
             JsonObject json;
             try {
                 json = JsonParser.parseString(body).getAsJsonObject();
