@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
         if (!localStorage.getItem('nexo_token')) {
-            window.location.href = 'login.html';
+            window.location.href = 'login1.html';
         }
         if (localStorage.getItem('darkMode') === 'enabled') {
             document.documentElement.classList.add('dark-mode');
@@ -216,7 +216,7 @@
             const response = await fetch(url, options);
             if (response.status === 401) {
                 alert("Sesión expirada o no válida. Por favor, inicie sesión de nuevo.");
-                window.location.href = 'login.html';
+                window.location.href = 'login1.html';
             }
             return response;
         }

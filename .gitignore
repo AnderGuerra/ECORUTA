@@ -11,3 +11,17 @@ backend/target/classes/
 # OS
 Thumbs.db
 .DS_Store
+
+# Respaldos de BD (datos sensibles)
+database/dumps/
+
+# Bot Node.js Microservice
+bot/node_modules/
+bot/.env
+
+# Validation Agent Microservice
+agent/node_modules/
+agent/.env
+
+# Local DevOps backup
+.backup_seguro_local/

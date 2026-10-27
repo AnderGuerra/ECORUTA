@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Design System CSS -->
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="css/style.css">
 
     <style>
         /* =========================================================
@@ -24,20 +24,22 @@
         :root {
             --bg-base: #050508;
             --bg-gradient: radial-gradient(circle at 50% 0%, #151828 0%, #050508 70%);
-            
+
             --card-bg: rgba(16, 18, 27, 0.65);
             --card-border: 1px solid rgba(255, 255, 255, 0.04);
             --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            
-            --primary-accent: #3b82f6; /* Electric Blue */
+
+            --primary-accent: #3b82f6;
+            /* Electric Blue */
             --primary-glow: rgba(59, 130, 246, 0.25);
-            --gold-accent: #fbbf24; /* Premium Gold */
+            --gold-accent: #fbbf24;
+            /* Premium Gold */
             --gold-glow: rgba(251, 191, 36, 0.15);
-            
+
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --text-dark: #cbd5e1;
-            
+
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
@@ -90,13 +92,26 @@
         }
 
         @keyframes pulseGlow {
-            0% { transform: scale(1) translate(0, 0); opacity: 0.3; }
-            100% { transform: scale(1.1) translate(-20px, 20px); opacity: 0.5; }
+            0% {
+                transform: scale(1) translate(0, 0);
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: scale(1.1) translate(-20px, 20px);
+                opacity: 0.5;
+            }
         }
 
         /* Typography & Globals */
-        h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.5px; }
-        
+        h1,
+        h2,
+        h3 {
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
         .header {
             background: rgba(10, 12, 16, 0.8);
             backdrop-filter: blur(20px);
@@ -126,6 +141,7 @@
             font-size: 28px;
             background: linear-gradient(135deg, var(--gold-accent), #f59e0b);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 4px 12px var(--gold-glow));
         }
@@ -180,13 +196,15 @@
             border-color: rgba(255, 255, 255, 0.2);
         }
 
-        .btn-glass[onclick="logout()"] {
+        .btn-glass[onclick="logout()"],
+        .btn-glass.btn-logout {
             background: rgba(239, 68, 68, 0.1);
             border-color: rgba(239, 68, 68, 0.2);
             color: #f87171 !important;
         }
 
-        .btn-glass[onclick="logout()"]:hover {
+        .btn-glass[onclick="logout()"]:hover,
+        .btn-glass.btn-logout:hover {
             background: rgba(239, 68, 68, 0.2);
             box-shadow: 0 8px 20px rgba(239, 68, 68, 0.15);
         }
@@ -224,8 +242,11 @@
         .stat-card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
         }
 
         .stat-card:hover {
@@ -389,8 +410,42 @@
             backdrop-filter: blur(20px);
             border: var(--card-border);
             border-radius: 24px;
-            overflow: hidden;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             box-shadow: var(--card-shadow);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 14px 16px;
+            }
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .admin-header-badge {
+                margin-left: 0;
+            }
+            .main-container {
+                padding: 0 16px;
+                margin: 20px auto;
+            }
+            .toolbar-card {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                padding: 16px;
+            }
+            .search-box {
+                max-width: 100%;
+            }
+            .filters-group {
+                flex-direction: column;
+            }
+            .client-table {
+                min-width: 600px;
+            }
         }
 
         .client-table {
@@ -477,7 +532,7 @@
         .badge-active {
             color: var(--success);
         }
-        
+
         .badge-active i {
             color: var(--success);
             text-shadow: 0 0 8px var(--success);
@@ -505,7 +560,10 @@
         .slider-sm {
             position: absolute;
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background-color: rgba(255, 255, 255, 0.1);
             transition: .3s;
             border-radius: 22px;
@@ -524,12 +582,12 @@
             border-radius: 50%;
         }
 
-        input:checked + .slider-sm {
+        input:checked+.slider-sm {
             background-color: rgba(16, 185, 129, 0.2);
             border-color: rgba(16, 185, 129, 0.4);
         }
 
-        input:checked + .slider-sm:before {
+        input:checked+.slider-sm:before {
             transform: translateX(18px);
             background-color: var(--success);
             box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
@@ -565,7 +623,10 @@
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(8px);
             z-index: 2000;
@@ -575,8 +636,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .modal-container {
@@ -595,13 +661,23 @@
         .modal-container::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 4px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
             background: linear-gradient(90deg, var(--primary-accent), var(--gold-accent));
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(40px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .modal-container h2 {
@@ -665,23 +741,42 @@
             width: 8px;
             height: 8px;
         }
+
         ::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.2);
         }
+
         ::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.15);
             border-radius: 4px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.25);
         }
 
         @media (max-width: 768px) {
-            .header { padding: 16px 20px; }
-            .main-container { padding: 0 20px; margin: 20px auto; }
-            .toolbar-card { flex-direction: column; align-items: stretch; }
-            .search-box { max-width: 100%; }
-            .filters-group { flex-direction: column; }
+            .header {
+                padding: 16px 20px;
+            }
+
+            .main-container {
+                padding: 0 20px;
+                margin: 20px auto;
+            }
+
+            .toolbar-card {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                max-width: 100%;
+            }
+
+            .filters-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -700,7 +795,8 @@
             </div>
 
             <div class="header-actions">
-                <button class="btn-glass" onclick="logout()" style="color:var(--danger); border-color:var(--danger);"><i class="fas fa-sign-out-alt"></i> Salir</button>
+                <button class="btn-glass btn-logout" onclick="logout()" style="color:var(--danger); border-color:var(--danger);"><i
+                        class="fas fa-sign-out-alt"></i> Salir</button>
             </div>
         </div>
     </div>
@@ -743,7 +839,8 @@
         <div class="toolbar-card">
             <div class="search-box">
                 <i class="fas fa-search search-icon"></i>
-                <input type="text" id="buscadorUsuario" class="search-input" placeholder="Buscar por usuario o nombre..." oninput="filtrarUsuarios()">
+                <input type="text" id="buscadorUsuario" class="search-input"
+                    placeholder="Buscar por usuario o nombre..." oninput="filtrarUsuarios()">
             </div>
 
             <div class="filters-group">
@@ -762,7 +859,8 @@
             </div>
 
             <div class="actions-group">
-                <button class="btn-primary" onclick="abrirModalCrearUsuario()" style="height:38px; padding:8px 18px; font-size:13px; font-weight:600;">
+                <button class="btn-primary" onclick="abrirModalCrearUsuario()"
+                    style="height:38px; padding:8px 18px; font-size:13px; font-weight:600;">
                     <i class="fas fa-user-plus"></i> Crear Usuario
                 </button>
             </div>
@@ -783,13 +881,15 @@
                 </thead>
                 <tbody id="cuerpoTablaUsuarios">
                     <tr>
-                        <td colspan="6" style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin"></i> Cargando usuarios...</td>
+                        <td colspan="6" style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin"></i>
+                            Cargando usuarios...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <div class="footer"><i class="fas fa-shield-alt"></i> NEXO Super Admin Module · Gestión Centralizada de Usuarios</div>
+        <div class="footer"><i class="fas fa-shield-alt"></i> NEXO Super Admin Module · Gestión Centralizada de Usuarios
+        </div>
     </div>
 
     <!-- MODAL CREAR USUARIO -->
@@ -801,15 +901,23 @@
             </div>
             <form id="formCrearUsuario" onsubmit="guardarNuevoUsuario(event)">
                 <div style="margin-bottom:16px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre de Usuario (Username)</label>
-                    <input type="text" id="nuevoUsername" class="control-input" placeholder="Ej: jsmith" required style="width:100%; box-sizing:border-box;">
+                    <label
+                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre
+                        de Usuario (Username)</label>
+                    <input type="text" id="nuevoUsername" class="control-input" placeholder="Ej: jsmith" required
+                        style="width:100%; box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre Completo</label>
-                    <input type="text" id="nuevoNombre" class="control-input" placeholder="Ej: Juan Smith" required style="width:100%; box-sizing:border-box;">
+                    <label
+                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre
+                        Completo</label>
+                    <input type="text" id="nuevoNombre" class="control-input" placeholder="Ej: Juan Smith" required
+                        style="width:100%; box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Rol del Sistema</label>
+                    <label
+                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Rol
+                        del Sistema</label>
                     <select id="nuevoRol" class="control-input" style="width:100%; box-sizing:border-box;">
                         <option value="ciudadano">Ciudadano (denuncias)</option>
                         <option value="gestor">Gestor rutas + denuncias</option>
@@ -817,11 +925,16 @@
                     </select>
                 </div>
                 <div style="margin-bottom:20px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Contraseña Inicial</label>
-                    <input type="password" id="nuevaPassword" class="control-input" placeholder="Mínimo 6 caracteres" required minlength="4" style="width:100%; box-sizing:border-box;">
+                    <label
+                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Contraseña
+                        Inicial</label>
+                    <input type="password" id="nuevaPassword" class="control-input" placeholder="Mínimo 6 caracteres"
+                        required minlength="4" style="width:100%; box-sizing:border-box;">
                 </div>
-                <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
-                    <button type="button" class="btn-secondary-outline" onclick="cerrarModalCrearUsuario()">Cancelar</button>
+                <div
+                    style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
+                    <button type="button" class="btn-secondary-outline"
+                        onclick="cerrarModalCrearUsuario()">Cancelar</button>
                     <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Crear Usuario</button>
                 </div>
             </form>
@@ -838,15 +951,22 @@
             <form id="formEditarUsuario" onsubmit="guardarEdicionUsuario(event)">
                 <input type="hidden" id="editUserId">
                 <div style="margin-bottom:16px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Username</label>
-                    <input type="text" id="editUsername" class="control-input" readonly style="width:100%; box-sizing:border-box; opacity:0.7; background:rgba(0,0,0,0.05);">
+                    <label
+                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Username</label>
+                    <input type="text" id="editUsername" class="control-input" readonly
+                        style="width:100%; box-sizing:border-box; opacity:0.7; background:rgba(0,0,0,0.05);">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre Completo</label>
-                    <input type="text" id="editNombre" class="control-input" required style="width:100%; box-sizing:border-box;">
+                    <label
+                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nombre
+                        Completo</label>
+                    <input type="text" id="editNombre" class="control-input" required
+                        style="width:100%; box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Rol del Sistema</label>
+                    <label
+                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Rol
+                        del Sistema</label>
                     <select id="editRol" class="control-input" style="width:100%; box-sizing:border-box;">
                         <option value="ciudadano">Ciudadano (denuncias)</option>
                         <option value="gestor">Gestor rutas + denuncias</option>
@@ -854,14 +974,18 @@
                     </select>
                 </div>
                 <div style="margin-bottom:20px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Estado de la Cuenta</label>
+                    <label
+                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Estado
+                        de la Cuenta</label>
                     <select id="editActivo" class="control-input" style="width:100%; box-sizing:border-box;">
                         <option value="true">Activo (Acceso Permitido)</option>
                         <option value="false">Inactivo (Acceso Bloqueado)</option>
                     </select>
                 </div>
-                <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
-                    <button type="button" class="btn-secondary-outline" onclick="cerrarModalEditarUsuario()">Cancelar</button>
+                <div
+                    style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
+                    <button type="button" class="btn-secondary-outline"
+                        onclick="cerrarModalEditarUsuario()">Cancelar</button>
                     <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Guardar Cambios</button>
                 </div>
             </form>
@@ -878,15 +1002,24 @@
             <form id="formResetPass" onsubmit="guardarResetPass(event)">
                 <input type="hidden" id="resetUserId">
                 <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
-                    Estás cambiando la contraseña para el usuario <strong id="resetUserSpan" style="color:var(--text-main);"></strong>.
+                    Estás cambiando la contraseña para el usuario <strong id="resetUserSpan"
+                        style="color:var(--text-main);"></strong>.
                 </p>
                 <div style="margin-bottom:20px;">
-                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nueva Contraseña</label>
-                    <input type="password" id="resetPasswordInput" class="control-input" placeholder="Ingrese nueva contraseña..." required minlength="4" style="width:100%; box-sizing:border-box;">
+                    <label
+                        style="display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text-muted); text-transform:uppercase;">Nueva
+                        Contraseña</label>
+                    <input type="password" id="resetPasswordInput" class="control-input"
+                        placeholder="Ingrese nueva contraseña..." required minlength="4"
+                        style="width:100%; box-sizing:border-box;">
                 </div>
-                <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
-                    <button type="button" class="btn-secondary-outline" onclick="cerrarModalResetPass()">Cancelar</button>
-                    <button type="submit" class="btn-primary" style="background:var(--gold-accent); border-color:var(--gold-accent);"><i class="fas fa-key"></i> Actualizar Contraseña</button>
+                <div
+                    style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--card-border); padding-top:16px;">
+                    <button type="button" class="btn-secondary-outline"
+                        onclick="cerrarModalResetPass()">Cancelar</button>
+                    <button type="submit" class="btn-primary"
+                        style="background:var(--gold-accent); border-color:var(--gold-accent);"><i
+                            class="fas fa-key"></i> Actualizar Contraseña</button>
                 </div>
             </form>
         </div>
@@ -904,7 +1037,7 @@
             if (response.status === 401 || response.status === 403) {
                 if (response.status === 403) alert("Acceso restringido: Se requieren permisos de Super Admin.");
                 else alert("Sesión expirada o no autorizada.");
-                window.location.href = 'login.html';
+                window.location.href = 'login1.html';
             }
             return response;
         }
@@ -913,7 +1046,7 @@
             const token = localStorage.getItem('nexo_token');
             const rol = localStorage.getItem('nexo_rol');
             if (!token) {
-                window.location.href = 'login.html';
+                window.location.href = 'login1.html';
             } else if (rol !== 'superadmin') {
                 alert("Acceso denegado. Esta sección está reservada exclusivamente para Super Admins.");
                 window.location.href = 'index.html';
@@ -922,7 +1055,7 @@
 
         function logout() {
             localStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = 'login1.html';
         }
 
         async function cargarUsuarios() {
@@ -1064,7 +1197,7 @@
             document.getElementById('editUserId').value = user.id;
             document.getElementById('editUsername').value = user.username;
             document.getElementById('editNombre').value = user.nombre || '';
-                document.getElementById('editRol').value = (user.rol === 'admin' ? 'gestor' : (user.rol || 'gestor'));
+            document.getElementById('editRol').value = (user.rol === 'admin' ? 'gestor' : (user.rol || 'gestor'));
             document.getElementById('editActivo').value = user.activo ? 'true' : 'false';
             document.getElementById('modalEditarUsuario').style.display = 'flex';
         }

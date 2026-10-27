@@ -18,7 +18,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.UUID;
-import java.time.Duration;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -31,7 +30,36 @@ public class Main {
     private static String DB_USER = getEnvOrDefault("DB_USER", "postgres");
     private static String DB_PASSWORD = getEnvOrDefault("DB_PASSWORD", "Zelaya11");
     private static final String ORS_KEY = getEnvOrDefault("ORS_API_KEY", "");
-    private static final String FRONTEND_DIR = getEnvOrDefault("FRONTEND_DIR", "../frontend");
+    private static final String FRONTEND_DIR = detectFrontendDir();
+
+    private static String readRequestBody(HttpExchange exchange) throws IOException {
+        try (InputStream is = exchange.getRequestBody()) {
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> parseJsonMap(String json) {
+        return gson.fromJson(json, Map.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> parseJsonList(String json) {
+        return gson.fromJson(json, List.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> List<T> castList(Object obj) {
+        return (List<T>) obj;
+    }
+
+    private static String detectFrontendDir() {
+        String env = System.getenv("FRONTEND_DIR");
+        if (env != null && !env.isEmpty()) return env;
+        if (new File("frontend").isDirectory()) return "frontend";
+        if (new File("../frontend").isDirectory()) return "../frontend";
+        return "frontend";
+    }
 
     // Modelos de Reglas
     static class Regla {
@@ -86,12 +114,12 @@ public class Main {
                     
                     if (!userInfo.isEmpty() && userInfo.contains(":")) {
                         String[] parts = userInfo.split(":", 2);
-                        DB_USER = parts[0];
-                        DB_PASSWORD = parts[1];
+                        DB_USER = java.net.URLDecoder.decode(parts[0], java.nio.charset.StandardCharsets.UTF_8);
+                        DB_PASSWORD = java.net.URLDecoder.decode(parts[1], java.nio.charset.StandardCharsets.UTF_8);
                     }
                     
                     DB_URL = "jdbc:postgresql://" + hostPortDb;
-                    System.out.println("✅ DATABASE_URL parseada correctamente.");
+                    System.out.println("✅ DATABASE_URL parseada correctamente (sslmode conservado si viene en la URL).");
                 } else {
                     DB_URL = dbUrlEnv;
                 }
@@ -336,8 +364,10 @@ public class Main {
         for (int p : puertos) {
             String url = "jdbc:postgresql://localhost:" + p + "/ruteo_db";
             try (Connection c = DriverManager.getConnection(url, DB_USER, DB_PASSWORD)) {
-                System.out.println("✅ Conectado a PostgreSQL en: " + url);
-                return url;
+                if (c.isValid(2)) {
+                    System.out.println("✅ Conectado a PostgreSQL en: " + url);
+                    return url;
+                }
             } catch (SQLException e) {
                 System.out.println("⚠️  Puerto no disponible: " + url + " (" + e.getMessage().split("\n")[0] + ")");
             }
@@ -360,7 +390,7 @@ public class Main {
 
         usuarioRepo = new UsuarioRepository(DB_URL, DB_USER, DB_PASSWORD);
 
-        int port = Integer.parseInt(getEnvOrDefault("PORT", "8080"));
+        int port = Integer.parseInt(getEnvOrDefault("PORT", "8085"));
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
 
         // Archivos estaticos
@@ -369,6 +399,7 @@ public class Main {
         // Configurar API
         server.createContext("/api/clientes", new ClientesHandler());
         server.createContext("/api/login", new LoginHandler());
+        server.createContext("/api/registro", new RegistroHandler());
         server.createContext("/api/generar-rutas", new RutasHandler());
         server.createContext("/api/asignar-recursos", new AsignarRecursosHandler());
         server.createContext("/api/ruta", new RutaTokenHandler());
@@ -434,7 +465,6 @@ public class Main {
                 exchange.sendResponseHeaders(403, -1);
                 return;
             }
-            String canonicalPath = file.getCanonicalPath();
             if (file.exists() && !file.isDirectory()) {
                 String contentType = "text/html";
                 if (path.endsWith(".css"))
@@ -451,6 +481,16 @@ public class Main {
                     contentType = "image/svg+xml";
                 else if (path.endsWith(".ico"))
                     contentType = "image/x-icon";
+                else if (path.endsWith(".json"))
+                    contentType = "application/json";
+                else if (path.endsWith(".webp"))
+                    contentType = "image/webp";
+                else if (path.endsWith(".woff2"))
+                    contentType = "font/woff2";
+                else if (path.endsWith(".woff"))
+                    contentType = "font/woff";
+                else if (path.endsWith(".ttf"))
+                    contentType = "font/ttf";
 
                 exchange.getResponseHeaders().set("Content-Type", contentType);
                 exchange.sendResponseHeaders(200, file.length());
@@ -515,10 +555,8 @@ public class Main {
                 }
             } else if ("POST".equals(exchange.getRequestMethod()) || "PUT".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(
-                            new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
 
                     String nombre = (String) req.get("nombre");
                     String tipo = (String) req.get("tipo_cliente");
@@ -614,17 +652,15 @@ public class Main {
             }
             if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(
-                            new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
+                    String body = readRequestBody(exchange);
 
-                    Map<String, Object> request = gson.fromJson(body, Map.class);
+                    Map<String, Object> request = parseJsonMap(body);
                     System.out.println("Generando rutas con: " + body);
 
                     Integer userId = getUserIdFromSession(exchange);
                     if (userId == null) { sendError(exchange, 401, "No autorizado"); return; }
 
-                    List<Double> cIds = (List<Double>) request.get("cliente_ids");
+                    List<Double> cIds = castList(request.get("cliente_ids"));
                     Object numMovilesObj = request.get("num_moviles");
                     int numMoviles = 1;
                     if (numMovilesObj instanceof Double)
@@ -747,7 +783,7 @@ public class Main {
                             String vehiculoNombre = "";
 
                             if (request.containsKey("asignaciones")) {
-                                List<Map<String, Object>> asigs = (List<Map<String, Object>>) request.get("asignaciones");
+                                List<Map<String, Object>> asigs = castList(request.get("asignaciones"));
                                 for (Map<String, Object> asig : asigs) {
                                     Object movObj = asig.get("movil");
                                     int movNum = 0;
@@ -881,7 +917,7 @@ public class Main {
 
                         ruta.put("distancia_total", rs.getDouble("distancia_total"));
                         ruta.put("tiempo_estimado", rs.getInt("tiempo_estimado"));
-                        List<Map<String, Object>> clientes = gson.fromJson(rs.getString("clientes_json"), List.class);
+                        List<Map<String, Object>> clientes = parseJsonList(rs.getString("clientes_json"));
 
                         // Agregar estados actuales de entregas
                         String sql2 = "SELECT cliente_id, estado, observacion FROM entregas WHERE ruta_token = ?";
@@ -927,10 +963,8 @@ public class Main {
 
             if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(
-                            new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)).lines()
-                            .collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
                     String token = (String) req.get("token");
                     int clienteId = ((Double) req.get("cliente_id")).intValue();
                     String estado = (String) req.get("estado");
@@ -1005,10 +1039,8 @@ public class Main {
 
             if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(
-                            new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)).lines()
-                            .collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
                     String token = (String) req.get("token");
 
                     Integer userId = getUserIdFromSession(exchange);
@@ -1084,10 +1116,8 @@ public class Main {
                 }
             } else if ("DELETE".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(
-                            new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)).lines()
-                            .collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
                     String token = (String) req.get("token");
                     String password = req.containsKey("password") ? (String) req.get("password") : null;
 
@@ -1187,10 +1217,8 @@ public class Main {
                 }
             } else if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(
-                            new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
-                    List<Map<String, Object>> reqReglas = gson.fromJson(body, List.class);
+                    String body = readRequestBody(exchange);
+                    List<Map<String, Object>> reqReglas = parseJsonList(body);
 
                     try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
                         for (Map<String, Object> r : reqReglas) {
@@ -1297,10 +1325,8 @@ public class Main {
                     stmt.close();
                     sendResponse(exchange, 200, gson.toJson(categorias));
                 } else if ("POST".equals(exchange.getRequestMethod())) {
-                    String body = new BufferedReader(
-                            new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
                     String nombre = req.get("nombre") == null ? "" : ((String) req.get("nombre")).trim();
                     if (nombre.isEmpty()) {
                         sendError(exchange, 400, "El nombre de la categoría es obligatorio");
@@ -1330,10 +1356,8 @@ public class Main {
                     r.put("clientes", 0);
                     sendResponse(exchange, 201, gson.toJson(r));
                 } else if ("PUT".equals(exchange.getRequestMethod())) {
-                    String body = new BufferedReader(
-                            new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
                     int id = ((Double) req.get("id")).intValue();
                     String nombre = req.get("nombre") == null ? "" : ((String) req.get("nombre")).trim();
                     if (nombre.isEmpty()) {
@@ -1674,8 +1698,13 @@ String dateFilter = switch (periodo) {
         /** GET /api/denuncias?ticket=ECO-... (publico) | ?estado=&barrio=&mine=1 (auth) */
         private void handleList(HttpExchange exchange) throws IOException, SQLException {
             Map<String, String> qp = queryParams(exchange);
+            boolean hasTicket = qp.containsKey("ticket") && !qp.get("ticket").isEmpty();
+            if (!hasTicket && !isAuthorized(exchange)) {
+                sendError(exchange, 401, "No autorizado");
+                return;
+            }
             try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-                if (qp.containsKey("ticket") && !qp.get("ticket").isEmpty()) {
+                if (hasTicket) {
                     PreparedStatement ps = conn.prepareStatement("SELECT * FROM denuncias WHERE ticket = ?");
                     ps.setString(1, qp.get("ticket").trim().toUpperCase());
                     ResultSet rs = ps.executeQuery();
@@ -1690,9 +1719,7 @@ String dateFilter = switch (periodo) {
                     }
                     return;
                 }
-                if (!isAuthorized(exchange)) { sendError(exchange, 401, "No autorizado"); return; }
                 Integer userId = getUserIdFromSession(exchange);
-                String rol = getRolFromSession(exchange);
                 boolean manager = canManageRutas(exchange);
                 StringBuilder sql = new StringBuilder("SELECT * FROM denuncias WHERE 1=1");
                 List<Object> params = new ArrayList<>();
@@ -1721,12 +1748,14 @@ String dateFilter = switch (periodo) {
             }
         }
 
-        /** POST /api/denuncias (auth: ciudadano/gestor/admin/superadmin) -> pendiente */
+        /** POST /api/denuncias (auth: ciudadano/gestor/admin/superadmin o canal público con agente) */
         private void handleCreate(HttpExchange exchange) throws IOException, SQLException {
-            if (!isAuthorized(exchange)) { sendError(exchange, 401, "No autorizado"); return; }
             Integer userId = getUserIdFromSession(exchange);
-            String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                    .lines().collect(Collectors.joining("\n"));
+            if (userId == null) {
+                // Permitir creación si proviene de integración de agente validador o canal ciudadano directo
+                userId = 1;
+            }
+            String body = readRequestBody(exchange);
             JsonObject json;
             try {
                 json = JsonParser.parseString(body).getAsJsonObject();
@@ -1742,11 +1771,23 @@ String dateFilter = switch (periodo) {
             String telefono = json.has("telefono") ? json.get("telefono").getAsString() : "";
             String nombre = json.has("nombre_ciudadano") ? json.get("nombre_ciudadano").getAsString() : "";
             String foto = json.has("foto_url") ? json.get("foto_url").getAsString() : "";
+            
+            // Soporte para ticket provisto por el agente o autogeneración ECO-YYYYMMDD-XXXX
             String fecha = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
-            String ticket = "ECO-" + fecha + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+            String ticket = (json.has("ticket") && !json.get("ticket").getAsString().trim().isEmpty())
+                    ? json.get("ticket").getAsString().trim()
+                    : ("ECO-" + fecha + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase());
+
+            // Soporte para veredicto de estado del agente validador ('pendiente', 'rechazada', 'requiere_revision')
+            String estado = (json.has("estado") && !json.get("estado").getAsString().trim().isEmpty())
+                    ? json.get("estado").getAsString().trim().toLowerCase()
+                    : "pendiente";
+            String observacion = json.has("observacion_cierre") ? json.get("observacion_cierre").getAsString()
+                    : (json.has("observaciones") ? json.get("observaciones").getAsString() : "");
+
             try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-                PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO denuncias (ticket, nombre_ciudadano, telefono, descripcion, categoria, barrio, direccion_referencia, latitud, longitud, foto_url, estado, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?) RETURNING id");
+                String sql = "INSERT INTO denuncias (ticket, nombre_ciudadano, telefono, descripcion, categoria, barrio, direccion_referencia, latitud, longitud, foto_url, estado, observacion_cierre, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id";
+                PreparedStatement ps = conn.prepareStatement(sql);
                 ps.setString(1, ticket);
                 ps.setString(2, nombre);
                 ps.setString(3, telefono);
@@ -1757,13 +1798,16 @@ String dateFilter = switch (periodo) {
                 ps.setDouble(8, lat);
                 ps.setDouble(9, lon);
                 ps.setString(10, foto);
-                ps.setInt(11, userId);
+                ps.setString(11, estado);
+                ps.setString(12, observacion);
+                ps.setInt(13, userId);
                 ResultSet rs = ps.executeQuery();
                 int id = rs.next() ? rs.getInt(1) : 0;
                 Map<String, Object> resp = new HashMap<>();
                 resp.put("id", id);
                 resp.put("ticket", ticket);
-                resp.put("estado", "pendiente");
+                resp.put("estado", estado);
+                resp.put("observacion", observacion);
                 sendResponse(exchange, 201, gson.toJson(resp));
             }
         }
@@ -1772,8 +1816,7 @@ String dateFilter = switch (periodo) {
         private void handleUpdate(HttpExchange exchange) throws IOException, SQLException {
             if (!isAuthorized(exchange)) { sendError(exchange, 401, "No autorizado"); return; }
             if (!canManageRutas(exchange)) { sendError(exchange, 403, "Solo gestor o superior"); return; }
-            String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                    .lines().collect(Collectors.joining("\n"));
+            String body = readRequestBody(exchange);
             JsonObject json;
             try {
                 json = JsonParser.parseString(body).getAsJsonObject();
@@ -1828,6 +1871,10 @@ String dateFilter = switch (periodo) {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             setCORS(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
             sendResponse(exchange, 200, "{\"status\":\"OK\"}");
         }
     }
@@ -1843,9 +1890,7 @@ String dateFilter = switch (periodo) {
 
             if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(
-                            new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
+                    String body = readRequestBody(exchange);
 
                     JsonObject json = JsonParser.parseString(body).getAsJsonObject();
                     String username = "";
@@ -1905,6 +1950,58 @@ String dateFilter = switch (periodo) {
         }
     }
 
+    static class RegistroHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCORS(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            if ("POST".equals(exchange.getRequestMethod())) {
+                try {
+                    String body = readRequestBody(exchange);
+
+                    JsonObject json = JsonParser.parseString(body).getAsJsonObject();
+                    String username = json.has("username") ? json.get("username").getAsString().trim() : "";
+                    String password = json.has("password") ? json.get("password").getAsString().trim() : "";
+                    String nombre = json.has("nombre") ? json.get("nombre").getAsString().trim() : username;
+
+                    if (username.isEmpty() || password.isEmpty()) {
+                        sendError(exchange, 400, "Nombre de usuario y contraseña son requeridos");
+                        return;
+                    }
+
+                    boolean ok = usuarioRepo.crearUsuario(username, nombre, "ciudadano", password);
+                    Map<String, Object> resp = new HashMap<>();
+                    if (ok) {
+                        String sessionToken = java.util.UUID.randomUUID().toString();
+                        Usuario usuario = usuarioRepo.login(username, password);
+                        int uid = usuario != null ? usuario.getId() : 0;
+                        activeTokens.put(sessionToken, new UserSession(System.currentTimeMillis(), username, "ciudadano", uid));
+
+                        resp.put("success", true);
+                        resp.put("message", "Usuario registrado exitosamente");
+                        resp.put("token", sessionToken);
+                        resp.put("usuario", nombre);
+                        resp.put("rol", "ciudadano");
+                        sendResponse(exchange, 201, gson.toJson(resp));
+                    } else {
+                        resp.put("success", false);
+                        resp.put("message", "El nombre de usuario ya existe o hubo un error al registrar.");
+                        sendResponse(exchange, 400, gson.toJson(resp));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    sendError(exchange, 500, "Error interno del servidor: " + e.getMessage());
+                }
+            } else {
+                exchange.sendResponseHeaders(405, -1);
+            }
+        }
+    }
+
     static class AdminUsuariosHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -1926,8 +2023,7 @@ String dateFilter = switch (periodo) {
                 sendResponse(exchange, 200, gson.toJson(usuarios));
             } else if ("POST".equals(method)) {
                 try {
-                    String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
+                    String body = readRequestBody(exchange);
                     JsonObject json = JsonParser.parseString(body).getAsJsonObject();
 
                     String action = json.has("action") ? json.get("action").getAsString() : "";
@@ -1962,8 +2058,7 @@ String dateFilter = switch (periodo) {
                 }
             } else if ("PUT".equals(method)) {
                 try {
-                    String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
+                    String body = readRequestBody(exchange);
                     JsonObject json = JsonParser.parseString(body).getAsJsonObject();
 
                     int id = json.get("id").getAsInt();
@@ -2590,9 +2685,8 @@ String dateFilter = switch (periodo) {
                 }
             } else if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
                     String nombre = (String) req.get("nombre");
                     String telefono = (String) req.get("telefono");
 
@@ -2625,8 +2719,8 @@ String dateFilter = switch (periodo) {
                 }
             } else if ("PUT".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
                     int id = ((Double) req.get("id")).intValue();
                     String nombre = (String) req.get("nombre");
                     String telefono = (String) req.get("telefono");
@@ -2684,9 +2778,8 @@ String dateFilter = switch (periodo) {
                 }
             } else if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
                     String nombre = (String) req.get("nombre");
                     String chapa = (String) req.get("chapa");
                     String tipo = (String) req.get("tipo");
@@ -2721,8 +2814,8 @@ String dateFilter = switch (periodo) {
                 }
             } else if ("PUT".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
-                    Map<String, Object> req = gson.fromJson(body, Map.class);
+                    String body = readRequestBody(exchange);
+                    Map<String, Object> req = parseJsonMap(body);
                     int id = ((Double) req.get("id")).intValue();
                     String nombre = (String) req.get("nombre");
                     String chapa = (String) req.get("chapa");
@@ -2760,9 +2853,8 @@ String dateFilter = switch (periodo) {
             }
             if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
-                    List<Map<String, Object>> assignments = gson.fromJson(body, List.class);
+                    String body = readRequestBody(exchange);
+                    List<Map<String, Object>> assignments = parseJsonList(body);
 
                     try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
                         conn.setAutoCommit(false); // Usar transaccion
@@ -2801,7 +2893,7 @@ String dateFilter = switch (periodo) {
 
                                 // Si viene la lista de clientes (por cambios en el ruteo manual), actualizar clientes_json y entregas
                                 if (asig.containsKey("clientes")) {
-                                    List<Map<String, Object>> clientes = (List<Map<String, Object>>) asig.get("clientes");
+                                    List<Map<String, Object>> clientes = castList(asig.get("clientes"));
                                     double distTot = (Double) asig.getOrDefault("distancia_total", 0.0);
                                     int tiempoEst = ((Double) asig.getOrDefault("tiempo_estimado", 0.0)).intValue();
 
@@ -2877,8 +2969,7 @@ String dateFilter = switch (periodo) {
             if (userId == null) { sendError(exchange, 401, "No autorizado"); return; }
             if ("POST".equals(exchange.getRequestMethod())) {
                 try {
-                    String body = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))
-                            .lines().collect(Collectors.joining("\n"));
+                    String body = readRequestBody(exchange);
                     JsonObject json = JsonParser.parseString(body).getAsJsonObject();
                     String url = json.has("url") ? json.get("url").getAsString() : "";
                     
@@ -2937,7 +3028,7 @@ String dateFilter = switch (periodo) {
                     sendResponse(exchange, 200, "{\"status\":\"ok\", \"imported\":" + points.size() + "}");
                 } catch (Exception e) {
                     e.printStackTrace();
-                    e.printStackTrace(); sendError(exchange, 500, "Error interno del servidor");
+                    sendError(exchange, 500, "Error interno del servidor");
                 }
             }
         }
