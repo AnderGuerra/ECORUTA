@@ -1,26 +1,81 @@
-# Compilados de Java
+# ==========================================
+# Java & Maven (Backend & Database)
+# ==========================================
 *.class
+*.log
+target/
 backend/target/
 backend/target/classes/
+backend/.classpath
+backend/.project
+backend/.settings/
 
-# IDEs
+# ==========================================
+# Node.js Microservices (Bot & Agent)
+# ==========================================
+node_modules/
+bot/node_modules/
+agent/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime uploads (keep sample test images)
+agent/uploads/evidencia-*.jpg
+agent/uploads/evidencia-*.png
+agent/uploads/evidencia-*.jpeg
+
+# ==========================================
+# Flutter & Android / iOS (Mobile)
+# ==========================================
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/coverage/
+mobile/android/.gradle/
+mobile/android/captures/
+mobile/android/local.properties
+mobile/android/key.properties
+*.jks
+*.keystore
+
+# ==========================================
+# Variables de Entorno y Credenciales
+# ==========================================
+.env
+.env.*
+!.env.example
+**/bot/.env
+**/agent/.env
+*.pem
+*.key
+*credentials*.json
+*secret*.json
+
+# ==========================================
+# Base de Datos y Respaldos Locales
+# ==========================================
+database/dumps/
+*.sql.gz
+*.dump
+.backup_seguro_local/
+
+# ==========================================
+# IDEs y Editores
+# ==========================================
 .idea/
 .vscode/
 *.iml
+*.ipr
+*.iws
+*.code-workspace
 
-# OS
+# ==========================================
+# Sistema Operativo
+# ==========================================
 Thumbs.db
 .DS_Store
-
-# Respaldos de BD (datos sensibles)
-database/dumps/
-# Bot Node.js Microservice
-bot/node_modules/
-bot/.env
-
-# Validation Agent Microservice
-agent/node_modules/
-agent/.env
-
-# Local DevOps backup
-.backup_seguro_local/
+Desktop.ini
