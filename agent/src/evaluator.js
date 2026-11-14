@@ -103,40 +103,106 @@ async function evaluarCoherenciaTextoFoto(datos) {
 }
 
 /**
- * Geovalidación: Valida coordenadas dentro de la jurisdicción de Asunción y Gran Asunción
+ * Algoritmo Ray-Casting (Point-in-Polygon) para determinar si una coordenada (lat, lon)
+ * se encuentra estrictamente dentro del polígono del límite municipal de Asunción.
+ */
+function puntoEnPoligono(lat, lon, polygon) {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const yi = polygon[i][0], xi = polygon[i][1];
+        const yj = polygon[j][0], xj = polygon[j][1];
+
+        const intersect = ((yi > lat) !== (yj > lat)) &&
+            (lon < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-12) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+const CIUDADES_EXCLUIDAS_GRAN_ASUNCION = [
+    'mariano roque alonso',
+    'roque alonso',
+    'm.r.a.',
+    'luque',
+    'lambare',
+    'lambaré',
+    'fernando de la mora',
+    'fdo de la mora',
+    'fdo. de la mora',
+    'san lorenzo',
+    'capiata',
+    'capiatá',
+    'ñemby',
+    'nemby',
+    'villa elisa',
+    'limpio',
+    'villa hayes',
+    'itaugua',
+    'itauguá',
+    'aregua',
+    'areguá'
+];
+
+const MENSAJE_FUERA_DE_COBERTURA = 'Fuera de zona de cobertura: Por el momento solo se admiten reportes dentro del municipio de Asunción';
+
+/**
+ * Geovalidación Dura: Valida que las coordenadas estén estrictamente dentro del municipio de Asunción
+ * (excluyendo Mariano Roque Alonso, Luque, Lambaré, Fernando de la Mora, San Lorenzo, etc.)
  */
 function evaluarGeovalidacion(datos) {
     const lat = parseFloat(datos.latitud);
     const lon = parseFloat(datos.longitud);
     const barrio = (datos.barrio || '').trim();
+    const direccion = (datos.direccion_referencia || datos.direccion || '').trim();
     const problemas = [];
 
-    if (isNaN(lat) || isNaN(lon)) {
+    if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) {
         return {
             valido: false,
+            coordenadasInvalidas: true,
+            fueraDeCobertura: false,
             puntaje: 0.0,
-            problemas: ['Coordenadas geográficas inválidas o no numéricas']
+            dentroDeLimites: false,
+            problemas: ['Coordenadas GPS inválidas o ausentes. Activa el GPS del dispositivo antes de enviar.']
         };
     }
 
-    // Comprobar si las coordenadas están en el rango de Gran Asunción
+    // 1. Comprobar Bounding Box municipal de Asunción (-25.368 a -25.225, -57.675 a -57.520)
     const { latMin, latMax, lonMin, lonMax } = config.geoBounds;
-    const dentroDeLimites = lat >= latMin && lat <= latMax && lon >= lonMin && lon <= lonMax;
+    const dentroBoundingBox = lat >= latMin && lat <= latMax && lon >= lonMin && lon <= lonMax;
 
-    if (!dentroDeLimites) {
-        problemas.push(`Coordenadas (${lat}, ${lon}) fuera del radio de jurisdicción municipal permitido`);
+    // 2. Comprobar Point-in-Polygon del límite municipal de Asunción
+    const dentroPoligonoAsuncion = Array.isArray(config.asuncionPolygon)
+        ? puntoEnPoligono(lat, lon, config.asuncionPolygon)
+        : dentroBoundingBox;
+
+    // 3. Comprobar mención explícita de ciudades vecinas fuera de Asunción
+    const textoUbicacion = `${barrio} ${direccion}`
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const mencionaCiudadExcluida = CIUDADES_EXCLUIDAS_GRAN_ASUNCION.some(ciudad => {
+        const ciudadNorm = ciudad.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return textoUbicacion.includes(ciudadNorm);
+    });
+
+    if (!dentroBoundingBox || !dentroPoligonoAsuncion || mencionaCiudadExcluida) {
+        problemas.push(MENSAJE_FUERA_DE_COBERTURA);
         return {
             valido: false,
-            puntaje: 0.1,
+            coordenadasInvalidas: false,
+            fueraDeCobertura: true,
+            puntaje: 0.0,
             dentroDeLimites: false,
             problemas
         };
     }
 
-    // Calcular distancia al centro de Asunción (-25.2867, -57.6333)
+    // Calcular distancia referencial en km
     const distCentroKm = calcularDistanciaMetros(lat, lon, -25.2867, -57.6333) / 1000;
 
-    // Validación de barrio contra lista conocida
+    // Validación de barrio contra lista conocida de Asunción
     let barrioReconocido = false;
     if (barrio) {
         barrioReconocido = BARRIOS_JURISDICCION.some(b => b.toLowerCase() === barrio.toLowerCase());
@@ -146,6 +212,8 @@ function evaluarGeovalidacion(datos) {
 
     return {
         valido: true,
+        coordenadasInvalidas: false,
+        fueraDeCobertura: false,
         puntaje,
         dentroDeLimites: true,
         distanciaCentroKm: parseFloat(distCentroKm.toFixed(2)),
@@ -224,16 +292,64 @@ async function evaluarDuplicadosYSpam(datos, pool) {
  * Evalúa integralmente una denuncia emitiendo veredicto, puntuación y estado sugerido
  */
 async function evaluarDenunciaCompleta(datos, pool) {
-    const evalTextoFoto = await evaluarCoherenciaTextoFoto(datos);
+    // 0. VALIDACIÓN DURA DE GEOCERCA (ASUNCIÓN) ANTES DE LLAMAR A GEMINI O CONSULTAR BD
     const evalGeo = evaluarGeovalidacion(datos);
+    if (!evalGeo.valido) {
+        return {
+            veredicto: 'RECHAZADA',
+            puntuacionConfianza: 0.0,
+            estadoAsignado: 'rechazada',
+            fueraDeCobertura: Boolean(evalGeo.fueraDeCobertura),
+            coordenadasInvalidas: Boolean(evalGeo.coordenadasInvalidas),
+            observaciones: evalGeo.problemas.join('; '),
+            motivos: evalGeo.problemas,
+            metricas: {
+                geovalidacion: evalGeo
+            }
+        };
+    }
+
+    // 0.5. VALIDACIÓN DE METADATOS DE CAPTURA EN VIVO (BLOQUEO DE GALERÍA / DESCARGAS WEB)
+    const fuenteCaptura = String(datos.fuente_captura || '').toUpperCase();
+    if (fuenteCaptura === 'GALLERY' || fuenteCaptura === 'GALERIA') {
+        const msgGaleria = 'No se admiten imágenes subidas desde la galería. La evidencia debe capturarse en vivo con la cámara.';
+        return {
+            veredicto: 'RECHAZADA',
+            puntuacionConfianza: 0.0,
+            estadoAsignado: 'rechazada',
+            observaciones: msgGaleria,
+            motivos: [msgGaleria],
+            metricas: { geovalidacion: evalGeo }
+        };
+    }
+
+    if (datos.timestamp_captura) {
+        const ts = Date.parse(datos.timestamp_captura);
+        if (!isNaN(ts)) {
+            const diffMinutos = Math.abs(Date.now() - ts) / (1000 * 60);
+            if (diffMinutos > 60) {
+                const msgTs = 'El timestamp de captura de la fotografía expiró (>60 min). Toma una foto en vivo actual.';
+                return {
+                    veredicto: 'RECHAZADA',
+                    puntuacionConfianza: 0.0,
+                    estadoAsignado: 'rechazada',
+                    observaciones: msgTs,
+                    motivos: [msgTs],
+                    metricas: { geovalidacion: evalGeo }
+                };
+            }
+        }
+    }
+
+    const evalTextoFoto = await evaluarCoherenciaTextoFoto(datos);
     const evalDuplicados = await evaluarDuplicadosYSpam(datos, pool);
 
-    // Auditoría visual profunda con Gemini Vision si hay imagen
+    // Auditoría visual profunda y forense con Gemini Vision si hay imagen
     let evalGemini = { ejecutado: false };
     try {
         evalGemini = await validarDenunciaConGemini(datos);
         if (evalGemini.ejecutado) {
-            console.log(`🤖 [Gemini Vision]: es_valida=${evalGemini.es_valida}, es_falsa=${evalGemini.es_falsa_denuncia}, confianza=${evalGemini.confianza}`);
+            console.log(`🤖 [Gemini Vision]: es_valida=${evalGemini.es_valida}, es_falsa=${evalGemini.es_falsa_denuncia}, es_internet=${evalGemini.es_foto_internet_o_captura}, confianza=${evalGemini.confianza}`);
         }
     } catch (gErr) {
         console.warn('⚠️ Error ejecutando Gemini Vision:', gErr.message);
@@ -242,7 +358,9 @@ async function evaluarDenunciaCompleta(datos, pool) {
     // Ponderación de pesos para confianza global
     let puntosGemini = evalTextoFoto.puntaje;
     if (evalGemini.ejecutado) {
-        puntosGemini = evalGemini.es_falsa_denuncia ? 0.05 : (evalGemini.confianza || 0.95);
+        puntosGemini = (evalGemini.es_falsa_denuncia || evalGemini.es_foto_internet_o_captura || !evalGemini.es_valida)
+            ? 0.05
+            : (evalGemini.confianza || 0.95);
     }
 
     // Geo: 30%, Texto-Foto/Gemini: 45%, Duplicados/Spam: 25%
@@ -252,15 +370,15 @@ async function evaluarDenunciaCompleta(datos, pool) {
 
     const motivos = [];
     let veredicto = 'VALIDA';
-    let estadoAsignado = 'pendiente';
+    let estadoAsignado = 'verificado';
 
-    // 1. Verificación de Falsa Denuncia detectada por Gemini Vision
+    // 1. Verificación Forense de Falsa Denuncia o Foto de Internet detectada por Gemini Vision
     if (evalGemini.ejecutado) {
-        if (evalGemini.es_falsa_denuncia || !evalGemini.es_valida) {
+        if (evalGemini.es_falsa_denuncia || evalGemini.es_foto_internet_o_captura || !evalGemini.es_valida) {
             veredicto = 'RECHAZADA';
             estadoAsignado = 'rechazada';
-            const motivoG = evalGemini.motivo_rechazo || evalGemini.justificacion || 'La foto no evidencia residuos ni acumulación de basura';
-            motivos.push(`FALSA DENUNCIA detectada por IA (Gemini Vision): ${motivoG}`);
+            const motivoG = evalGemini.motivo_rechazo || evalGemini.justificacion || 'La foto fue identificada como imagen de internet/archivo o no evidencia residuos reales';
+            motivos.push(`Auditoría Forense IA (Gemini Vision): ${motivoG}`);
         }
     }
 
@@ -268,7 +386,7 @@ async function evaluarDenunciaCompleta(datos, pool) {
     if (!evalGeo.dentroDeLimites) {
         veredicto = 'RECHAZADA';
         estadoAsignado = 'rechazada';
-        motivos.push('Ubicación fuera de la jurisdicción municipal permitida de Asunción');
+        motivos.push(MENSAJE_FUERA_DE_COBERTURA);
     }
 
     // 3. Reglas de coherencia de texto si no fue rechazada previamente

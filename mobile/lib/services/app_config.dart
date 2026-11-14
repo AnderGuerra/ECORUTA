@@ -11,4 +11,8 @@ class AppConfig {
   static String get registroUrl => '$backendUrl/api/registro';
   static String get validarYEnviarUrl => '$agentUrl/api/denuncias/validar-y-enviar';
   static String rastreoUrl(String ticket) => '$agentUrl/api/denuncias/rastreo/$ticket';
+  static String misTicketsUrl(String ciudadano) =>
+      '$agentUrl/api/denuncias/mis-tickets?ciudadano=${Uri.encodeComponent(ciudadano)}';
+  static String misTicketsBackendFallbackUrl(String ciudadano) =>
+      '$backendUrl/api/denuncias?public=1&ciudadano=${Uri.encodeComponent(ciudadano)}';
 }

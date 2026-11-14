@@ -4,9 +4,16 @@ dns.setDefaultResultOrder('ipv4first');
 const { Telegraf, Markup } = require('telegraf');
 const config = require('./config');
 const { getDriverByTelegramId, getDriverByZone, registerOrUpdateDriver } = require('./drivers');
-const { actualizarEstadoDenuncia, obtenerDenunciaPorId, actualizarEstadoRuta } = require('./db');
+const { actualizarEstadoDenuncia, obtenerDenunciaPorId, obtenerCoordenadasRuta, actualizarEstadoRuta } = require('./db');
 
 let bot = null;
+
+const MOTIVOS_RECHAZO = {
+    camion_lleno: 'Camión Lleno / Capacidad Máxima Alcanzada',
+    fuera_camino: 'Ruta Fuera de Camino / Vía Inaccesible para Camión',
+    desperfecto: 'Desperfecto Mecánico del Vehículo',
+    fin_turno: 'Fin de Turno / Fuera de Horario Laboral'
+};
 
 /**
  * Inicializa y configura la instancia de Telegraf
@@ -20,7 +27,6 @@ function initBot() {
     try {
         bot = new Telegraf(config.telegramToken);
 
-        // Middleware de logging de mensajes entrantes
         bot.use(async (ctx, next) => {
             if (ctx.from) {
                 console.log(`📩 [Telegram Incoming] Mensaje de ${ctx.from.first_name} (ID: ${ctx.from.id})`);
@@ -28,9 +34,6 @@ function initBot() {
             return next();
         });
 
-        // ----------------------------------------------------
-        // Comando /start: Registro y Vinculación del Conductor
-        // ----------------------------------------------------
         bot.command('start', async (ctx) => {
             const telegramId = String(ctx.from.id);
             const isTestDriver = telegramId === config.testDriverTelegramId;
@@ -68,9 +71,6 @@ function initBot() {
             });
         });
 
-        // ----------------------------------------------------
-        // Comando /estado
-        // ----------------------------------------------------
         bot.command('estado', async (ctx) => {
             await responderEstadoConductor(ctx);
         });
@@ -86,30 +86,31 @@ function initBot() {
         });
 
         // ----------------------------------------------------
-        // EVENTOS DE BOTONES INLINE: Aceptar Recolección
+        // EVENTOS DE BOTONES INLINE: Aceptar Recolección (Denuncia Individual)
         // ----------------------------------------------------
         bot.action(/^accept_(\d+)$/, async (ctx) => {
             const denunciaId = ctx.match[1];
             console.log(`⚡ [Bot Action]: Conductor ${ctx.from.id} aceptó la denuncia #${denunciaId}`);
 
-            // Actualizar en base de datos
             await actualizarEstadoDenuncia(
                 denunciaId,
                 'en_proceso',
                 `Aceptada por conductor Telegram ID ${ctx.from.id} a las ${new Date().toLocaleTimeString('es-PY')}`
             );
 
-            // Responder feedback inmediato en Telegram (Toast/Alerta)
             await ctx.answerCbQuery('✅ ¡Recolección asumida! Dirígete al punto indicado.', { show_alert: true });
 
-            // Recuperar datos de la denuncia para reconstruir el mensaje
             const denuncia = await obtenerDenunciaPorId(denunciaId);
-            const direccion = denuncia ? denuncia.direccion_referencia || denuncia.barrio : 'Zona Centro';
-            const coords = denuncia ? `${denuncia.latitud},${denuncia.longitud}` : '-25.2867,-57.6333';
-            const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${coords}`;
+            const direccion = denuncia ? (denuncia.direccion_referencia || denuncia.barrio || 'Punto reportado') : 'Punto reportado';
+            const tieneCoords = denuncia && denuncia.latitud != null && denuncia.longitud != null;
+            const coordsTexto = tieneCoords ? `${denuncia.latitud}, ${denuncia.longitud}` : 'Ver en panel';
+            const gmapsUrl = tieneCoords
+                ? `https://www.google.com/maps?q=${denuncia.latitud},${denuncia.longitud}`
+                : `http://localhost:8085/chofer.html`;
 
             const textoActualizado = `🚚 *RECOLECCIÓN EN CAMINO - DENUNCIA #${denunciaId}*\n\n` +
                 `📍 *Lugar:* ${direccion}\n` +
+                `🗺️ *Coordenadas GPS:* \`${coordsTexto}\`\n` +
                 `👤 *Conductor asignado:* ${ctx.from.first_name || 'Conductor'}\n` +
                 `⏰ *Hora de aceptación:* ${new Date().toLocaleTimeString('es-PY')}\n` +
                 `📌 *Estado actual:* *EN PROCESO / EN CAMINO*\n\n` +
@@ -131,7 +132,6 @@ function initBot() {
             const denunciaId = ctx.match[1];
             console.log(`🏁 [Bot Action]: Conductor ${ctx.from.id} completó la recolección #${denunciaId}`);
 
-            // Actualizar en base de datos a 'cerrada'
             await actualizarEstadoDenuncia(
                 denunciaId,
                 'cerrada',
@@ -150,25 +150,50 @@ function initBot() {
         });
 
         // ----------------------------------------------------
-        // EVENTOS DE BOTONES INLINE: Rechazar Recolección
+        // EVENTOS DE BOTONES INLINE: Menú de Motivos de Rechazo para Denuncia Individual
         // ----------------------------------------------------
         bot.action(/^reject_(\d+)$/, async (ctx) => {
             const denunciaId = ctx.match[1];
-            console.log(`❌ [Bot Action]: Conductor ${ctx.from.id} rechazó la recolección #${denunciaId}`);
+            console.log(`⚠️ [Bot Action]: Conductor ${ctx.from.id} abrió menú de rechazo para denuncia #${denunciaId}`);
+            await ctx.answerCbQuery();
 
-            // Actualizar en base de datos
+            const textoMenu = `⚠️ *RECHAZO DE ORDEN DE RECOLECCIÓN #${denunciaId}*\n\n` +
+                `👤 *Chofer:* ${ctx.from.first_name || 'Conductor'}\n` +
+                `Selecciona el motivo del rechazo para notificar al Centro de Despacho y reasignar la unidad:`;
+
+            await editMessageOrCaption(ctx, textoMenu, {
+                parse_mode: 'Markdown',
+                ...Markup.inlineKeyboard([
+                    [Markup.button.callback('🚛 Camión Lleno / Capacidad Máxima', `rej_den_${denunciaId}_camion_lleno`)],
+                    [Markup.button.callback('🚧 Ruta Fuera de Camino / Inaccesible', `rej_den_${denunciaId}_fuera_camino`)],
+                    [Markup.button.callback('⚠️ Desperfecto Mecánico', `rej_den_${denunciaId}_desperfecto`)],
+                    [Markup.button.callback('⏱️ Fin de Turno / Fuera de Horario', `rej_den_${denunciaId}_fin_turno`)],
+                    [Markup.button.callback('🔙 Cancelar (Aceptar)', `accept_${denunciaId}`)]
+                ])
+            });
+        });
+
+        bot.action(/^rej_den_(\d+)_([a-zA-Z0-9_]+)$/, async (ctx) => {
+            const denunciaId = ctx.match[1];
+            const codigoMotivo = ctx.match[2];
+            const motivoTexto = MOTIVOS_RECHAZO[codigoMotivo] || 'Ruta no factible de realizar en este momento';
+
+            console.log(`❌ [Bot Action]: Conductor ${ctx.from.id} rechazó denuncia #${denunciaId} por: ${motivoTexto}`);
+
             await actualizarEstadoDenuncia(
                 denunciaId,
-                'rechazada',
-                `Rechazada por conductor Telegram ID ${ctx.from.id}. Requiere reasignación de móvil.`
+                `Rechazado: ${motivoTexto}`,
+                `Rechazado por chofer Telegram ID ${ctx.from.id}: ${motivoTexto}`,
+                motivoTexto
             );
 
-            await ctx.answerCbQuery('⚠️ Recolección rechazada. Notificando a despacho central.', { show_alert: false });
+            await ctx.answerCbQuery(`⚠️ Rechazado: ${motivoTexto}`, { show_alert: true });
 
             const textoRechazado = `❌ *ORDEN DE RECOLECCIÓN RECHAZADA - DENUNCIA #${denunciaId}*\n\n` +
                 `👤 *Conductor:* ${ctx.from.first_name || 'Conductor'}\n` +
-                `🕒 *Hora:* ${new Date().toLocaleTimeString('es-PY')}\n` +
-                `⚠️ *Nota:* Notificación enviada al panel del despachador para reasignación a otro camión recolector.`;
+                `⚠️ *Motivo Indicado:* *${motivoTexto}*\n` +
+                `🕒 *Hora:* ${new Date().toLocaleTimeString('es-PY')}\n\n` +
+                `📢 *Alerta prioritaria enviada al despachador central para reasignar inmediatamente a otro camión.*`;
 
             await editMessageOrCaption(ctx, textoRechazado, { parse_mode: 'Markdown' });
         });
@@ -183,10 +208,18 @@ function initBot() {
             await actualizarEstadoRuta(token, 'en_curso', `Aceptada por Telegram ID ${ctx.from.id}`);
             await ctx.answerCbQuery('✅ ¡Ruta aceptada! Iniciando itinerario de recolección.', { show_alert: true });
 
-            const gmapsNavUrl = `https://www.google.com/maps/search/?api=1&query=-25.2867,-57.6333`;
+            // Obtener las coordenadas exactas del ticket/ruta desde PostgreSQL
+            const infoCoords = await obtenerCoordenadasRuta(token);
+            const tieneCoords = infoCoords && !isNaN(infoCoords.latitud) && !isNaN(infoCoords.longitud);
+            const coordsStr = tieneCoords ? `${infoCoords.latitud}, ${infoCoords.longitud}` : 'Ver hoja de ruta';
+            const gmapsNavUrl = tieneCoords
+                ? `https://www.google.com/maps?q=${infoCoords.latitud},${infoCoords.longitud}`
+                : `http://localhost:8085/ruta.html?token=${token}`;
+
             const textoAceptado = `🚚 *¡RUTA ACEPTADA EN CURSO!* 🚛\n\n` +
                 `👤 *Chofer:* ${ctx.from.first_name || 'Conductor'}\n` +
-                `🎫 *Token de Ruta:* \`${token}\`\n` +
+                `🎫 *Token de Ruta:* \`${token}\`${infoCoords && infoCoords.ticket ? ` (Ticket: \`${infoCoords.ticket}\`)` : ''}\n` +
+                `📍 *Coordenadas GPS Exactas:* \`${coordsStr}\`\n` +
                 `⏰ *Hora de Aceptación:* ${new Date().toLocaleTimeString('es-PY')}\n` +
                 `📌 *Estado:* *EN CAMINO / RECOLECCIÓN ACTIVA*\n\n` +
                 `✨ *Cuando termines todas las paradas asignadas, presiona el botón inferior para finalizar la hoja de ruta.*`;
@@ -251,17 +284,10 @@ function initBot() {
             const token = ctx.match[1];
             const codigoMotivo = ctx.match[2];
 
-            const motivosMap = {
-                camion_lleno: 'Camión Lleno / Capacidad Máxima Alcanzada',
-                fuera_camino: 'Ruta Fuera de Camino / Vía Inaccesible para Camión',
-                desperfecto: 'Desperfecto Mecánico del Vehículo',
-                fin_turno: 'Fin de Turno / Fuera de Horario Laboral'
-            };
-
-            const motivoTexto = motivosMap[codigoMotivo] || 'Ruta no factible de realizar en este momento';
+            const motivoTexto = MOTIVOS_RECHAZO[codigoMotivo] || 'Ruta no factible de realizar en este momento';
             console.log(`❌ [Bot Action]: Chofer ${ctx.from.id} rechazó ruta ${token} por: ${motivoTexto}`);
 
-            // Actualizar en BD: marca ruta como rechazada y libera las denuncias para reasignación
+            // Actualizar en BD: marca ticket con "Rechazado: <Motivo>" y guarda al chofer en historial de descartados
             await actualizarEstadoRuta(token, 'rechazada_chofer', motivoTexto);
 
             await ctx.answerCbQuery(`⚠️ Ruta rechazada: ${motivoTexto}`, { show_alert: true });
@@ -334,39 +360,58 @@ async function editMessageOrCaption(ctx, text, extra = {}) {
  * Despacha proactivamente una denuncia al conductor correspondiente en Telegram
  */
 async function despacharDenunciaAConductor(datosDenuncia) {
-    const {
+    let {
         denunciaId,
         ticket = `DEN-${denunciaId}`,
         zona = config.defaultZone,
         direccion = 'Sin dirección especificada',
         descripcion = 'Acumulación de residuos en vía pública',
-        latitud = -25.2867,
-        longitud = -57.6333,
-        fotoUrl = null
+        latitud = null,
+        longitud = null,
+        fotoUrl = null,
+        telegramId = null
     } = datosDenuncia;
 
-    // Buscar conductor asignado a la zona (o fallback conductor de pruebas)
+    // Si no vinieron coordenadas en el payload, recuperarlas directamente desde PostgreSQL
+    if ((latitud === null || longitud === null || isNaN(parseFloat(latitud)) || isNaN(parseFloat(longitud))) && denunciaId) {
+        const denDb = await obtenerDenunciaPorId(denunciaId);
+        if (denDb) {
+            latitud = denDb.latitud;
+            longitud = denDb.longitud;
+            if (!direccion || direccion === 'Sin dirección especificada') {
+                direccion = denDb.direccion_referencia || denDb.barrio || direccion;
+            }
+        }
+    }
+
+    const latNum = parseFloat(latitud);
+    const lonNum = parseFloat(longitud);
+    if (isNaN(latNum) || isNaN(lonNum)) {
+        throw new Error(`La denuncia #${denunciaId} no posee coordenadas GPS válidas para despachar`);
+    }
+
     const conductor = getDriverByZone(zona);
-    const targetChatId = conductor ? conductor.telegramId : config.testDriverTelegramId;
+    const targetChatId = (telegramId && String(telegramId).trim()) || (conductor ? conductor.telegramId : config.testDriverTelegramId);
 
     if (!targetChatId) {
         throw new Error(`No se encontró un Telegram Chat ID para la zona '${zona}'`);
     }
 
-    const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitud},${longitud}`;
+    const gmapsUrl = `https://www.google.com/maps?q=${latNum},${lonNum}`;
 
     const mensajeAlerta = `🚨 *¡NUEVA ALERTA DE RECOLECCIÓN DE BASURA!* 🚨\n\n` +
         `🎫 *Ticket / Ref:* \`${ticket}\` (ID: #${denunciaId})\n` +
         `📍 *Zona Operativa:* *${zona}*\n` +
         `📌 *Dirección:* ${direccion}\n` +
         `📝 *Descripción:* ${descripcion}\n` +
-        `🗺️ *Coordenadas:* \`${latitud}, ${longitud}\`\n\n` +
+        `🗺️ *Coordenadas GPS Exactas:* \`${latNum}, ${lonNum}\`\n` +
+        `🔗 *Google Maps:* [Abrir ubicación exacta](${gmapsUrl})\n\n` +
         `Selecciona una opción para responder al despacho:`;
 
     const inlineButtons = [
         [
             Markup.button.callback('✅ Aceptar Recolección', `accept_${denunciaId}`),
-            Markup.button.callback('❌ Rechazar', `reject_${denunciaId}`)
+            Markup.button.callback('❌ Rechazar (Elegir Motivo)', `reject_${denunciaId}`)
         ],
         [
             Markup.button.url('🗺️ Ver en Mapa / Navegar', gmapsUrl)
@@ -378,7 +423,6 @@ async function despacharDenunciaAConductor(datosDenuncia) {
 
     const botones = Markup.inlineKeyboard(inlineButtons);
 
-    // Si el bot de Telegram está activo y conectado, enviar el mensaje interactivo
     if (bot) {
         try {
             const sentMessage = await bot.telegram.sendMessage(targetChatId, mensajeAlerta, {
@@ -386,7 +430,6 @@ async function despacharDenunciaAConductor(datosDenuncia) {
                 ...botones
             });
 
-            // Enviar además pin de ubicación nativo de Telegram para abrir en GPS
             try {
                 if (latitud && longitud) {
                     await bot.telegram.sendLocation(targetChatId, parseFloat(latitud), parseFloat(longitud));
@@ -398,7 +441,7 @@ async function despacharDenunciaAConductor(datosDenuncia) {
             return {
                 enviado: true,
                 targetChatId,
-                conductor: conductor ? conductor.nombre : 'Conductor de Pruebas',
+                conductor: conductor ? conductor.nombre : 'Conductor Asignado',
                 zona,
                 messageId: sentMessage.message_id
             };
@@ -407,22 +450,18 @@ async function despacharDenunciaAConductor(datosDenuncia) {
             return {
                 enviado: false,
                 targetChatId,
-                conductor: conductor ? conductor.nombre : 'Conductor de Pruebas',
+                conductor: conductor ? conductor.nombre : 'Conductor Asignado',
                 error: tgError.message,
                 simulado: false
             };
         }
     } else {
-        // Modo simulación cuando no hay token configurado
         console.log(`📢 [MODO SIMULACIÓN DESPACHO] Alerta generada para Telegram Chat ID ${targetChatId} (${zona}):`);
-        console.log(`   Denuncia ID: #${denunciaId} | Dirección: ${direccion}`);
-        console.log(`   Botones: [✅ Aceptar Recolección] [❌ Rechazar]`);
-
         return {
             enviado: false,
             simulado: true,
             targetChatId,
-            conductor: conductor ? conductor.nombre : 'Conductor de Pruebas',
+            conductor: conductor ? conductor.nombre : 'Conductor Asignado',
             zona,
             mensaje: 'Despacho procesado en modo simulación (configura TELEGRAM_BOT_TOKEN en .env para entrega real).'
         };
@@ -436,6 +475,11 @@ async function despacharRutaAConductor(datosRuta) {
     const {
         movilNumero = 1,
         token = '',
+        denunciaId = null,
+        ticket = '',
+        barrio = '',
+        latitud = null,
+        longitud = null,
         chofer = {},
         vehiculo = {},
         clientes = [],
@@ -444,37 +488,70 @@ async function despacharRutaAConductor(datosRuta) {
         seguimientoUrl = ''
     } = datosRuta;
 
-    const choferNombre = chofer.nombre || 'Anderson Guerrero';
+    const choferNombre = chofer.nombre || 'Conductor Asignado';
     const choferTelefono = chofer.telefono || '0991194963';
-    const vehiculoNombre = vehiculo.nombre ? `${vehiculo.nombre} (${vehiculo.chapa || ''})` : 'Camión Recolector';
-    const targetChatId = config.testDriverTelegramId || '8727434553';
+    const vehiculoNombre = vehiculo.nombre ? `${vehiculo.nombre}${vehiculo.chapa ? ' (' + vehiculo.chapa + ')' : ''}` : 'Camión Recolector #01';
+    const targetChatId = (chofer.telegramId && String(chofer.telegramId).trim()) || config.testDriverTelegramId || '8727434553';
+
+    // Resolver las coordenadas reales exactas del reporte (nunca usar centro fijo por defecto)
+    const primerCliente = clientes[0] || {};
+    let realLat = parseFloat(latitud ?? primerCliente.latitud ?? primerCliente.lat);
+    let realLon = parseFloat(longitud ?? primerCliente.longitud ?? primerCliente.lon);
+
+    if (isNaN(realLat) || isNaN(realLon) || (realLat === 0 && realLon === 0)) {
+        if (denunciaId) {
+            const denDb = await obtenerDenunciaPorId(denunciaId);
+            if (denDb && !isNaN(parseFloat(denDb.latitud)) && !isNaN(parseFloat(denDb.longitud))) {
+                realLat = parseFloat(denDb.latitud);
+                realLon = parseFloat(denDb.longitud);
+            }
+        }
+        if ((isNaN(realLat) || isNaN(realLon)) && token) {
+            const coordsDb = await obtenerCoordenadasRuta(token);
+            if (coordsDb) {
+                realLat = coordsDb.latitud;
+                realLon = coordsDb.longitud;
+            }
+        }
+    }
+
+    const tieneCoordsReales = !isNaN(realLat) && !isNaN(realLon) && (realLat !== 0 || realLon !== 0);
+    const gmapsNavUrl = tieneCoordsReales
+        ? `https://www.google.com/maps?q=${realLat},${realLon}`
+        : `http://localhost:8085/ruta.html?token=${token}`;
 
     let mensaje = `🚛 *¡NUEVA HOJA DE RUTA ASIGNADA (MÓVIL ${movilNumero})!* 🚛\n\n` +
         `👤 *Chofer:* ${choferNombre}\n` +
         `📱 *Teléfono:* \`${choferTelefono}\`\n` +
         `🚚 *Vehículo:* ${vehiculoNombre}\n` +
         `📍 *Distancia Total:* ${distanciaTotal} km (~${tiempoEstimado} min)\n` +
-        `📦 *Paradas / Puntos:* ${clientes.length}\n` +
-        `🎫 *Token de Ruta:* \`${token}\`\n\n` +
-        `🗺️ *ITINERARIO DE RECOLECCIÓN:*\n`;
+        `📦 *Paradas / Puntos:* ${clientes.length || 1}\n` +
+        `🎫 *Token de Ruta:* \`${token}\`${ticket ? ` (Ticket: \`${ticket}\`)` : ''}\n`;
 
-    clientes.forEach((c, i) => {
-        const lat = c.latitud || c.lat || 0;
-        const lon = c.longitud || c.lon || 0;
-        mensaje += `*${i + 1}.* ${c.nombre || 'Punto de recolección'}\n` +
-            `   📍 [Ver en Google Maps](https://maps.google.com/?q=${lat},${lon})\n`;
-    });
+    if (tieneCoordsReales) {
+        mensaje += `🗺️ *Coordenadas GPS Exactas:* \`${realLat}, ${realLon}\`\n` +
+            `🔗 *Ubicación Directa:* [Abrir en Google Maps](${gmapsNavUrl})\n`;
+    }
 
-    const primerCliente = clientes[0] || {};
-    const primerLat = primerCliente.latitud || primerCliente.lat || -25.2867;
-    const primerLon = primerCliente.longitud || primerCliente.lon || -57.6333;
-    const gmapsNavUrl = `https://www.google.com/maps/search/?api=1&query=${primerLat},${primerLon}`;
+    mensaje += `\n🗺️ *ITINERARIO DE RECOLECCIÓN:*\n`;
+
+    if (clientes.length > 0) {
+        clientes.forEach((c, i) => {
+            const lat = parseFloat(c.latitud ?? c.lat ?? realLat);
+            const lon = parseFloat(c.longitud ?? c.lon ?? realLon);
+            mensaje += `*${i + 1}.* ${c.nombre || 'Punto de recolección'}\n` +
+                `   📌 Coords: \`${lat}, ${lon}\`\n` +
+                `   📍 [Ver en Google Maps](https://www.google.com/maps?q=${lat},${lon})\n`;
+        });
+    } else if (tieneCoordsReales) {
+        mensaje += `*1.* Ticket ${ticket || token} - ${barrio || 'Punto reportado'}\n` +
+            `   📌 Coords: \`${realLat}, ${realLon}\`\n` +
+            `   📍 [Ver en Google Maps](${gmapsNavUrl})\n`;
+    }
 
     const rutaFinalUrl = seguimientoUrl || `http://localhost:8085/ruta.html?token=${token}`;
     mensaje += `\n🔗 *Panel de Navegación en Vivo:*\n${rutaFinalUrl}\n\n` +
-        `_Toca el botón abajo para abrir la navegación GPS en Google Maps._`;
-
-    const botonUrl = rutaFinalUrl.startsWith('https://') ? rutaFinalUrl : gmapsNavUrl;
+        `_Toca el botón abajo para abrir la navegación GPS en Google Maps con las coordenadas exactas del reclamo._`;
 
     const botones = Markup.inlineKeyboard([
         [
@@ -482,7 +559,7 @@ async function despacharRutaAConductor(datosRuta) {
             Markup.button.callback('❌ Rechazar Ruta', `rej_route_menu_${token}`)
         ],
         [
-            Markup.button.url('🗺️ Navegar en Google Maps', botonUrl)
+            Markup.button.url('🗺️ Navegar en Google Maps', gmapsNavUrl)
         ]
     ]);
 
@@ -493,7 +570,16 @@ async function despacharRutaAConductor(datosRuta) {
                 ...botones
             });
 
-            console.log(`✅ [Telegram Dispatch]: Ruta ${token} despachada al chofer ${choferNombre} (ChatId: ${targetChatId})`);
+            // Enviar también el pin nativo de ubicación en Telegram con las coordenadas reales del reclamo
+            if (tieneCoordsReales) {
+                try {
+                    await bot.telegram.sendLocation(targetChatId, realLat, realLon);
+                } catch (locErr) {
+                    console.warn('⚠️ No se pudo enviar pin de ubicación nativa en ruta:', locErr.message);
+                }
+            }
+
+            console.log(`✅ [Telegram Dispatch]: Ruta ${token} despachada al chofer ${choferNombre} (ChatId: ${targetChatId}, Coords: ${realLat}, ${realLon})`);
             return {
                 success: true,
                 enviado: true,
@@ -515,7 +601,10 @@ async function despacharRutaAConductor(datosRuta) {
         return {
             success: true,
             simulado: true,
-            mensaje: 'Bot no conectado a Telegram'
+            targetChatId,
+            chofer: choferNombre,
+            token,
+            mensaje: 'Bot en modo simulación / HTTP'
         };
     }
 }

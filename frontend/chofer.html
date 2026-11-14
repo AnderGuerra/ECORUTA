@@ -1475,6 +1475,11 @@
         </div>
 
         <div class="header-actions">
+            <button type="button" class="btn-icon-glass" title="Volver al Menú Principal según tu Rol" onclick="irAlMenuPrincipalPorRol()" style="width:auto; padding:0 12px; gap:6px; font-size:0.82rem; font-weight:700; color:var(--accent-mint);">
+                <i class="fa-solid fa-house"></i>
+                <span>Menú Principal</span>
+            </button>
+
             <!-- PROMINENT ALERT BUTTON AS REQUESTED -->
             <button type="button" class="btn-emitir-alerta" id="btnEmitirAlerta" onclick="abrirModalAlerta()">
                 <i class="fa-solid fa-triangle-exclamation"></i>
@@ -2968,6 +2973,17 @@
                 toast.style.transform = 'translateY(10px)';
                 setTimeout(() => toast.remove(), 400);
             }, 3500);
+        }
+
+        function irAlMenuPrincipalPorRol() {
+            const rol = (localStorage.getItem('ecoruta_rol') || localStorage.getItem('nexo_rol') || 'chofer').toLowerCase();
+            if (rol === 'ciudadano') {
+                window.location.href = 'ciudadano.html';
+            } else if (rol === 'super_admin' || rol === 'admin' || rol === 'gestor') {
+                window.location.href = 'index.html';
+            } else {
+                cambiarTab('ruta');
+            }
         }
 
         function cerrarSesion() {

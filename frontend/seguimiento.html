@@ -219,7 +219,7 @@
         <h1><i class="fas fa-recycle"></i> Estado de Recolección · EcoRuta</h1>
         <div style="display:flex; gap:10px; align-items:center;">
             <input type="date" id="inputFecha" onchange="cargarDatos()" style="padding:8px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white; color-scheme: dark;">
-            <a href="index.html" class="btn-back"><i class="fas fa-arrow-left"></i> Volver</a>
+            <button type="button" onclick="volverMenuPorRol()" class="btn-back" style="border:none; cursor:pointer;"><i class="fas fa-home"></i> Volver al Menú Principal</button>
         </div>
     </div>
 
@@ -269,6 +269,17 @@
         resetTimer();
 
         // Initialize Dark Mode from localStorage
+        function volverMenuPorRol() {
+            const rol = (localStorage.getItem('ecoruta_rol') || localStorage.getItem('nexo_rol') || 'gestor').toLowerCase();
+            if (rol === 'ciudadano') {
+                window.location.href = 'ciudadano.html';
+            } else if (rol === 'chofer') {
+                window.location.href = 'chofer.html';
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
         function syncThemeUI(isDark) {
             const toggle = document.getElementById('headerDarkModeToggle');
             if (toggle) toggle.checked = isDark;

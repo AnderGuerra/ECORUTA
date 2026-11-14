@@ -296,6 +296,19 @@ public class Main {
             try { stmt.executeUpdate("ALTER TABLE denuncias ADD COLUMN IF NOT EXISTS chofer_id INTEGER"); } catch (SQLException ignored) {}
             try { stmt.executeUpdate("ALTER TABLE denuncias ADD COLUMN IF NOT EXISTS cuadrilla TEXT"); } catch (SQLException ignored) {}
             try { stmt.executeUpdate("ALTER TABLE denuncias ADD COLUMN IF NOT EXISTS asignado_a TEXT"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE denuncias ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE denuncias ADD COLUMN IF NOT EXISTS choferes_descartados TEXT DEFAULT ''"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE denuncias ADD COLUMN IF NOT EXISTS distancia_km DOUBLE PRECISION DEFAULT 0.0"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE denuncias ADD COLUMN IF NOT EXISTS tiempo_min INTEGER DEFAULT 15"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE denuncias ADD COLUMN IF NOT EXISTS chofer_sugerido_id INTEGER"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE denuncias ADD COLUMN IF NOT EXISTS chofer_sugerido_nombre TEXT"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("DELETE FROM denuncias WHERE LOWER(COALESCE(estado, '')) IN ('rechazada', 'rechazado_ia')"); } catch (SQLException ignored) {}
+
+            try { stmt.executeUpdate("ALTER TABLE choferes ADD COLUMN IF NOT EXISTS zona TEXT DEFAULT ''"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE choferes ADD COLUMN IF NOT EXISTS telegram_id TEXT DEFAULT ''"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE choferes ADD COLUMN IF NOT EXISTS latitud DOUBLE PRECISION"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE choferes ADD COLUMN IF NOT EXISTS longitud DOUBLE PRECISION"); } catch (SQLException ignored) {}
+            try { stmt.executeUpdate("ALTER TABLE choferes ADD COLUMN IF NOT EXISTS vehiculo_id INTEGER"); } catch (SQLException ignored) {}
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS alertas_operativas (" +
                     "id SERIAL PRIMARY KEY, " +
                     "tipo TEXT NOT NULL, " +
@@ -1883,6 +1896,60 @@ public class Main {
         }
     }
 
+    // Polígono estricto del límite municipal de Asunción, Paraguay
+    private static final double[][] ASUNCION_POLYGON = {
+            { -25.2750, -57.6680 }, // Ita Pyta Punta / Río Paraguay Oeste
+            { -25.2660, -57.6420 }, // Bahía de Asunción / Chacarita Norte
+            { -25.2420, -57.6050 }, // Banco San Miguel
+            { -25.2250, -57.5750 }, // Zeballos Cué Norte (Ribera Río Paraguay)
+            { -25.2340, -57.5540 }, // Límite Zeballos Cué / Sur de Mariano Roque Alonso
+            { -25.2460, -57.5410 }, // Loma Pytá / Arroyo Itay (excluye Mariano Roque Alonso)
+            { -25.2630, -57.5350 }, // Ñu Guasú / Arroyo Itay (excluye Luque)
+            { -25.2850, -57.5370 }, // Av. Madame Lynch / CIT
+            { -25.3030, -57.5410 }, // Av. Madame Lynch / Mcal. López
+            { -25.3190, -57.5550 }, // Calle Última / Ruta Mcal. Estigarribia (excluye Fdo. de la Mora)
+            { -25.3350, -57.5720 }, // 4 Mojones / Av. Defensores del Chaco
+            { -25.3260, -57.5920 }, // Límite Norte de Lambaré / Av. Gral. Santos
+            { -25.3330, -57.6160 }, // Límite Cerro Lambaré / Av. Perón
+            { -25.3520, -57.6370 }, // Itá Enramada Sur / Río Paraguay
+            { -25.3250, -57.6560 }  // Bañado Sur / Río Paraguay
+    };
+
+    private static boolean puntoEnPoligonoAsuncion(double lat, double lon) {
+        boolean inside = false;
+        for (int i = 0, j = ASUNCION_POLYGON.length - 1; i < ASUNCION_POLYGON.length; j = i++) {
+            double yi = ASUNCION_POLYGON[i][0], xi = ASUNCION_POLYGON[i][1];
+            double yj = ASUNCION_POLYGON[j][0], xj = ASUNCION_POLYGON[j][1];
+            boolean intersect = ((yi > lat) != (yj > lat))
+                    && (lon < (xj - xi) * (lat - yi) / ((yj - yi) == 0 ? 1e-12 : (yj - yi)) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    private static boolean estaDentroDeAsuncion(double lat, double lon, String barrio, String direccion) {
+        if (Double.isNaN(lat) || Double.isNaN(lon) || (lat == 0 && lon == 0)) {
+            return false;
+        }
+        if (lat < -25.368 || lat > -25.225 || lon < -57.675 || lon > -57.520) {
+            return false;
+        }
+        if (!puntoEnPoligonoAsuncion(lat, lon)) {
+            return false;
+        }
+        String texto = ((barrio != null ? barrio : "") + " " + (direccion != null ? direccion : "")).toLowerCase()
+                .replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u");
+        String[] excluidas = {
+                "mariano roque alonso", "roque alonso", "luque", "lambare",
+                "fernando de la mora", "san lorenzo", "capiata", "ñemby", "nemby",
+                "villa elisa", "limpio", "villa hayes", "itaugua", "aregua"
+        };
+        for (String c : excluidas) {
+            if (texto.contains(c)) return false;
+        }
+        return true;
+    }
+
     static class DenunciasHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -1943,24 +2010,32 @@ public class Main {
             d.put("ruta_token", rs.getString("ruta_token"));
             d.put("observacion_cierre", rs.getString("observacion_cierre"));
             d.put("chofer_id", rs.getObject("chofer_id"));
+            try { d.put("chofer_sugerido_id", rs.getObject("chofer_sugerido_id")); } catch (Exception ignored) {}
+            try { d.put("chofer_sugerido_nombre", rs.getString("chofer_sugerido_nombre")); } catch (Exception ignored) {}
             d.put("cuadrilla", rs.getString("cuadrilla"));
             d.put("asignado_a", rs.getString("asignado_a"));
+            try { d.put("motivo_rechazo", rs.getString("motivo_rechazo")); } catch (Exception ignored) {}
+            try { d.put("choferes_descartados", rs.getString("choferes_descartados")); } catch (Exception ignored) {}
+            try { d.put("distancia_km", rs.getObject("distancia_km")); } catch (Exception ignored) {}
+            try { d.put("tiempo_min", rs.getObject("tiempo_min")); } catch (Exception ignored) {}
             d.put("fecha_creacion", rs.getTimestamp("fecha_creacion") != null ? rs.getTimestamp("fecha_creacion").toString() : null);
             d.put("fecha_cierre", rs.getTimestamp("fecha_cierre") != null ? rs.getTimestamp("fecha_cierre").toString() : null);
             return d;
         }
 
-        /** GET /api/denuncias?ticket=ECO-... (publico) | ?estado=&barrio=&mine=1 (auth/publico) */
+        /** GET /api/denuncias?ticket=ECO-... (publico) | ?ciudadano=... (publico) | ?estado=&barrio=&mine=1 (auth/publico) */
         private void handleList(HttpExchange exchange) throws IOException, SQLException {
             Map<String, String> qp = queryParams(exchange);
             boolean hasTicket = qp.containsKey("ticket") && !qp.get("ticket").isEmpty();
-            if (!hasTicket && !isAuthorized(exchange)) {
+            boolean hasCiudadano = qp.containsKey("ciudadano") && !qp.get("ciudadano").isEmpty();
+            boolean isPublicQuery = "1".equals(qp.get("public")) || hasTicket || hasCiudadano;
+            if (!isPublicQuery && !isAuthorized(exchange)) {
                 sendError(exchange, 401, "No autorizado");
                 return;
             }
             try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
                 if (hasTicket) {
-                    PreparedStatement ps = conn.prepareStatement("SELECT * FROM denuncias WHERE ticket = ?");
+                    PreparedStatement ps = conn.prepareStatement("SELECT * FROM denuncias WHERE ticket = ? AND LOWER(COALESCE(estado, '')) NOT IN ('rechazada', 'rechazado_ia')");
                     ps.setString(1, qp.get("ticket").trim().toUpperCase());
                     ResultSet rs = ps.executeQuery();
                     if (rs.next()) {
@@ -1980,10 +2055,14 @@ public class Main {
                 Integer sesionChoferId = getChoferIdFromSession(exchange);
                 String sesionUsername = getUsernameFromSession(exchange);
 
-                StringBuilder sql = new StringBuilder("SELECT * FROM denuncias WHERE 1=1");
+                // Excluir estrictamente denuncias rechazadas por IA (spam/falsas) de todas las bandejas y consultas
+                StringBuilder sql = new StringBuilder("SELECT * FROM denuncias WHERE LOWER(COALESCE(estado, '')) NOT IN ('rechazada', 'rechazado_ia')");
                 List<Object> params = new ArrayList<>();
 
-                if (chofer && !manager) {
+                if (hasCiudadano) {
+                    sql.append(" AND nombre_ciudadano ILIKE ?");
+                    params.add("%" + qp.get("ciudadano").trim() + "%");
+                } else if (chofer && !manager) {
                     if (sesionChoferId != null) {
                         sql.append(" AND (chofer_id = ? OR cuadrilla ILIKE ? OR asignado_a ILIKE ?)");
                         params.add(sesionChoferId);
@@ -1999,7 +2078,7 @@ public class Main {
                     params.add(userId);
                 }
                 if (qp.containsKey("estado") && !qp.get("estado").isEmpty() && !"todos".equalsIgnoreCase(qp.get("estado"))) {
-                    sql.append(" AND estado = ?");
+                    sql.append(" AND LOWER(estado) = ?");
                     params.add(qp.get("estado").toLowerCase());
                 }
                 if (qp.containsKey("barrio") && !qp.get("barrio").isEmpty()) {
@@ -2040,11 +2119,10 @@ public class Main {
             return def;
         }
 
-        /** POST /api/denuncias: crea y persiste en BD siempre (con o sin sesión, soporta agente validador) */
+        /** POST /api/denuncias: crea y persiste en BD siempre + genera ruta automática y auto-despacha si hay chofer en zona */
         private void handleCreate(HttpExchange exchange) throws IOException, SQLException {
             Integer userId = getUserIdFromSession(exchange);
             if (userId == null) {
-                // Permitir creación si proviene de integración de agente validador o canal ciudadano directo
                 userId = 1;
             }
             String body = readRequestBody(exchange);
@@ -2059,20 +2137,35 @@ public class Main {
                 sendError(exchange, 400, "latitud y longitud son obligatorias");
                 return;
             }
-            double lat = json.get("latitud").getAsDouble();
-            double lon = json.get("longitud").getAsDouble();
+            double lat;
+            double lon;
+            try {
+                lat = json.get("latitud").getAsDouble();
+                lon = json.get("longitud").getAsDouble();
+            } catch (Exception e) {
+                sendError(exchange, 400, "latitud y longitud deben ser coordenadas numéricas válidas");
+                return;
+            }
+            if (Double.isNaN(lat) || Double.isNaN(lon) || (lat == 0 && lon == 0)) {
+                sendError(exchange, 400, "Coordenadas GPS inválidas (0, 0). Activa el GPS antes de reportar.");
+                return;
+            }
             String categoria = optString(json, "categoria", "VERTEDERO_CLANDESTINO");
             String direccion = optString(json, "direccion_referencia", "");
+            // Validación Dura de Geocerca (Geofencing): exclusivo para el municipio de Asunción
+            if (!estaDentroDeAsuncion(lat, lon, barrio, direccion)) {
+                sendResponse(exchange, 403,
+                        "{\"success\":false,\"valido\":false,\"bloqueado_ia\":true,\"fuera_de_cobertura\":true,\"veredicto\":\"RECHAZADA\",\"error\":\"Fuera de zona de cobertura: Por el momento solo se admiten reportes dentro del municipio de Asunción\",\"motivo\":\"Fuera de zona de cobertura: Por el momento solo se admiten reportes dentro del municipio de Asunción\"}");
+                return;
+            }
             String telefono = optString(json, "telefono", "");
             String nombre = optString(json, "nombre_ciudadano", "");
             String foto = optString(json, "foto_url", "").trim();
             if (!foto.isEmpty()) {
-                // Medidas de seguridad: Límite estricto de tamaño (máx 5MB)
                 if (foto.length() > 5 * 1024 * 1024) {
                     sendError(exchange, 400, "La fotografía excede el tamaño máximo permitido (máx 5MB)");
                     return;
                 }
-                // Medidas de seguridad: Validar que sea un formato seguro de imagen (JPEG/PNG/WebP o URL)
                 boolean isSafe = foto.startsWith("data:image/jpeg;base64,")
                         || foto.startsWith("data:image/png;base64,")
                         || foto.startsWith("data:image/webp;base64,")
@@ -2084,43 +2177,208 @@ public class Main {
                 }
             }
             
-            // Soporte para ticket provisto por el agente o autogeneración ECO-YYYYMMDD-XXXX
             String fecha = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
             String ticket = (json.has("ticket") && !json.get("ticket").getAsString().trim().isEmpty())
                     ? json.get("ticket").getAsString().trim()
                     : ("ECO-" + fecha + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase());
 
-            // Soporte para veredicto de estado del agente validador ('pendiente', 'rechazada', 'requiere_revision')
-            String estado = (json.has("estado") && !json.get("estado").getAsString().trim().isEmpty())
+            String estadoInput = (json.has("estado") && !json.get("estado").getAsString().trim().isEmpty())
                     ? json.get("estado").getAsString().trim().toLowerCase()
-                    : "pendiente";
+                    : "verificado";
+            // Cortocircuito estricto: si llega rechazada por IA / spam, no insertarla en la cola activa
+            if ("rechazada".equals(estadoInput) || "rechazado_ia".equals(estadoInput)) {
+                sendResponse(exchange, 422, "{\"success\":false,\"bloqueado_ia\":true,\"error\":\"Denuncia rechazada por el filtro de validación IA Anti-Spam\"}");
+                return;
+            }
+            // Normalizar: si viene 'pendiente' o 'verificado' desde el agente validador tras aprobarse
+            String estado = ("pendiente".equals(estadoInput) || "verificado".equals(estadoInput)) ? "verificado" : estadoInput;
             String observacion = json.has("observacion_cierre") ? json.get("observacion_cierre").getAsString()
                     : (json.has("observaciones") ? json.get("observaciones").getAsString() : "");
 
-            try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-                 PreparedStatement ps = conn.prepareStatement(
-                         "INSERT INTO denuncias (ticket, nombre_ciudadano, telefono, descripcion, categoria, barrio, direccion_referencia, latitud, longitud, foto_url, estado, observacion_cierre, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id")) {
-                ps.setString(1, ticket);
-                ps.setString(2, nombre);
-                ps.setString(3, telefono);
-                ps.setString(4, descripcion);
-                ps.setString(5, categoria);
-                ps.setString(6, barrio);
-                ps.setString(7, direccion);
-                ps.setDouble(8, lat);
-                ps.setDouble(9, lon);
-                ps.setString(10, foto);
-                ps.setString(11, estado);
-                ps.setString(12, observacion);
-                ps.setInt(13, userId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    int id = rs.next() ? rs.getInt(1) : 0;
+            // Calcular ruta óptima automáticamente desde Base Central Municipal (-25.2867, -57.6333)
+            double baseLat = -25.2867;
+            double baseLon = -57.6333;
+            double distKm = Math.round(haversine(baseLat, baseLon, lat, lon) * 1.3 * 100.0) / 100.0;
+            if (distKm < 0.5) distKm = 1.2;
+            int tiempoMin = Math.max(8, (int) Math.ceil((distKm / 35.0) * 60.0));
+
+            try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+                conn.setAutoCommit(false);
+                try {
+                    int denunciaId = 0;
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO denuncias (ticket, nombre_ciudadano, telefono, descripcion, categoria, barrio, direccion_referencia, latitud, longitud, foto_url, estado, observacion_cierre, distancia_km, tiempo_min, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id")) {
+                        ps.setString(1, ticket);
+                        ps.setString(2, nombre);
+                        ps.setString(3, telefono);
+                        ps.setString(4, descripcion);
+                        ps.setString(5, categoria);
+                        ps.setString(6, barrio);
+                        ps.setString(7, direccion);
+                        ps.setDouble(8, lat);
+                        ps.setDouble(9, lon);
+                        ps.setString(10, foto);
+                        ps.setString(11, estado);
+                        ps.setString(12, observacion);
+                        ps.setDouble(13, distKm);
+                        ps.setInt(14, tiempoMin);
+                        ps.setInt(15, userId);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) denunciaId = rs.getInt(1);
+                        }
+                    }
+
+                    String routeToken = null;
+                    Integer sugeridoChoferId = null;
+                    String sugeridoChoferNombre = null;
+                    String autoVehiculoNombre = "Camión Recolector #01";
+
+                    // Si el reporte es VERIFICADO, crear punto, calcular ruta y SUGERIR (pre-asignar) el mejor chofer candidato
+                    // para aprobación del gestor en el Dashboard (Flujo Semi-Automático)
+                    if ("verificado".equals(estado) || "requiere_revision".equals(estado)) {
+                        String nombrePunto = "Ticket " + ticket + " - " + barrio;
+                        int clienteId = 0;
+                        try (PreparedStatement psCli = conn.prepareStatement(
+                                "INSERT INTO clientes (nombre, tipo_cliente, latitud, longitud, ciudad, cadena, activo, usuario_id) VALUES (?, 'denuncia', ?, ?, ?, ?, true, ?) RETURNING id")) {
+                            psCli.setString(1, nombrePunto);
+                            psCli.setDouble(2, lat);
+                            psCli.setDouble(3, lon);
+                            psCli.setString(4, barrio);
+                            psCli.setString(5, barrio);
+                            psCli.setInt(6, userId);
+                            try (ResultSet rsCli = psCli.executeQuery()) {
+                                if (rsCli.next()) clienteId = rsCli.getInt(1);
+                            }
+                        }
+
+                        // Buscar chofer candidato por cercanía / zona / disponibilidad
+                        Integer fallbackChoferId = null;
+                        String fallbackChoferNombre = null;
+                        try (PreparedStatement psCh = conn.prepareStatement(
+                                "SELECT id, nombre, telefono, zona, telegram_id, latitud, longitud FROM choferes WHERE activo = true ORDER BY id ASC")) {
+                            try (ResultSet rsCh = psCh.executeQuery()) {
+                                double mejorDist = Double.MAX_VALUE;
+                                while (rsCh.next()) {
+                                    int cid = rsCh.getInt("id");
+                                    String cnom = rsCh.getString("nombre");
+                                    String czona = rsCh.getString("zona") != null ? rsCh.getString("zona").trim() : "";
+                                    Double clat = (Double) rsCh.getObject("latitud");
+                                    Double clon = (Double) rsCh.getObject("longitud");
+
+                                    if (fallbackChoferId == null) {
+                                        fallbackChoferId = cid;
+                                        fallbackChoferNombre = cnom;
+                                    }
+
+                                    boolean matchZona = !czona.isEmpty() && (czona.equalsIgnoreCase(barrio)
+                                            || barrio.toLowerCase().contains(czona.toLowerCase())
+                                            || czona.toLowerCase().contains(barrio.toLowerCase()));
+                                    boolean tieneCoords = (clat != null && clon != null && clat != 0 && clon != 0);
+
+                                    if (matchZona) {
+                                        sugeridoChoferId = cid;
+                                        sugeridoChoferNombre = cnom + (!czona.isEmpty() ? " (" + czona + ")" : "");
+                                        break; // Prioridad exacta por zona
+                                    } else if (tieneCoords) {
+                                        double d = haversine(lat, lon, clat, clon);
+                                        if (d < mejorDist) {
+                                            mejorDist = d;
+                                            sugeridoChoferId = cid;
+                                            sugeridoChoferNombre = cnom + String.format(java.util.Locale.US, " (a %.1f km)", d);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (sugeridoChoferId == null && fallbackChoferId != null) {
+                            sugeridoChoferId = fallbackChoferId;
+                            sugeridoChoferNombre = fallbackChoferNombre;
+                        }
+
+                        routeToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+                        Map<String, Object> nuevoPunto = new HashMap<>();
+                        nuevoPunto.put("id", (double) clienteId);
+                        nuevoPunto.put("nombre", nombrePunto);
+                        nuevoPunto.put("latitud", lat);
+                        nuevoPunto.put("longitud", lon);
+                        nuevoPunto.put("distancia_siguiente", distKm);
+                        nuevoPunto.put("es_denuncia", true);
+                        nuevoPunto.put("tipo", "denuncia");
+                        nuevoPunto.put("ticket", ticket);
+                        nuevoPunto.put("categoria", categoria);
+                        nuevoPunto.put("descripcion", descripcion);
+                        nuevoPunto.put("foto_url", foto);
+                        nuevoPunto.put("estado", "pendiente");
+                        nuevoPunto.put("observacion", observacion);
+
+                        List<Map<String, Object>> clientesList = new ArrayList<>();
+                        clientesList.add(nuevoPunto);
+
+                        Integer vehiculoId = null;
+                        try (PreparedStatement psV1 = conn.prepareStatement("SELECT id, nombre, chapa FROM vehiculos WHERE activo = true LIMIT 1")) {
+                            ResultSet rsV1 = psV1.executeQuery();
+                            if (rsV1.next()) {
+                                vehiculoId = rsV1.getInt("id");
+                                autoVehiculoNombre = rsV1.getString("nombre");
+                            }
+                        }
+
+                        // La ruta queda pre-calculada en estado 'pendiente_aprobacion' hasta que el gestor confirme en el Dashboard
+                        try (PreparedStatement psRuta = conn.prepareStatement(
+                                "INSERT INTO rutas_generadas (token, movil_numero, clientes_json, distancia_total, tiempo_estimado, chofer_id, vehiculo_id, chofer_nombre, vehiculo_nombre, usuario_id, estado) VALUES (?, 1, ?, ?, ?, NULL, ?, '', ?, ?, 'pendiente_aprobacion')")) {
+                            psRuta.setString(1, routeToken);
+                            psRuta.setString(2, gson.toJson(clientesList));
+                            psRuta.setDouble(3, distKm);
+                            psRuta.setInt(4, tiempoMin);
+                            if (vehiculoId != null) psRuta.setInt(5, vehiculoId); else psRuta.setNull(5, Types.INTEGER);
+                            psRuta.setString(6, autoVehiculoNombre);
+                            psRuta.setInt(7, userId);
+                            psRuta.executeUpdate();
+                        }
+
+                        try (PreparedStatement psEnt = conn.prepareStatement(
+                                "INSERT INTO entregas (ruta_token, cliente_id, estado, observacion, orden_en_ruta) VALUES (?, ?, 'pendiente', ?, 1)")) {
+                            psEnt.setString(1, routeToken);
+                            psEnt.setInt(2, clienteId);
+                            psEnt.setString(3, observacion);
+                            psEnt.executeUpdate();
+                        }
+
+                        // Estado pasa a 'pre_asignado' (con chofer sugerido listo para confirmar) o 'pendiente_aprobacion'
+                        if (!"requiere_revision".equals(estado)) {
+                            estado = (sugeridoChoferId != null) ? "pre_asignado" : "pendiente_aprobacion";
+                        }
+
+                        try (PreparedStatement psUpDen = conn.prepareStatement(
+                                "UPDATE denuncias SET estado = ?, cliente_id = ?, ruta_token = ?, chofer_sugerido_id = ?, chofer_sugerido_nombre = ? WHERE id = ?")) {
+                            psUpDen.setString(1, estado);
+                            psUpDen.setInt(2, clienteId);
+                            psUpDen.setString(3, routeToken);
+                            if (sugeridoChoferId != null) psUpDen.setInt(4, sugeridoChoferId); else psUpDen.setNull(4, Types.INTEGER);
+                            psUpDen.setString(5, sugeridoChoferNombre);
+                            psUpDen.setInt(6, denunciaId);
+                            psUpDen.executeUpdate();
+                        }
+                    }
+
+                    conn.commit();
+
                     Map<String, Object> resp = new HashMap<>();
-                    resp.put("id", id);
+                    resp.put("id", denunciaId);
                     resp.put("ticket", ticket);
                     resp.put("estado", estado);
+                    resp.put("ruta_token", routeToken);
+                    resp.put("distancia_km", distKm);
+                    resp.put("tiempo_min", tiempoMin);
+                    resp.put("auto_despachado", false);
+                    resp.put("chofer_sugerido_id", sugeridoChoferId);
+                    resp.put("chofer_sugerido_nombre", sugeridoChoferNombre);
                     resp.put("observacion", observacion);
                     sendResponse(exchange, 201, gson.toJson(resp));
+                } catch (Exception ex) {
+                    conn.rollback();
+                    throw ex;
                 }
             }
         }
@@ -2136,10 +2394,9 @@ public class Main {
             } catch (Exception e) { sendError(exchange, 400, "JSON invalido"); return; }
             if (!json.has("id")) { sendError(exchange, 400, "id requerido"); return; }
             int id = json.get("id").getAsInt();
-            String nuevoEstado = json.has("estado") ? json.get("estado").getAsString().toLowerCase() : null;
-            if (nuevoEstado == null || (!nuevoEstado.equals("pendiente") && !nuevoEstado.equals("en_proceso")
-                    && !nuevoEstado.equals("cerrada") && !nuevoEstado.equals("rechazada"))) {
-                sendError(exchange, 400, "estado invalido (pendiente|en_proceso|cerrada|rechazada)");
+            String nuevoEstado = json.has("estado") ? json.get("estado").getAsString().trim() : null;
+            if (nuevoEstado == null || nuevoEstado.isEmpty()) {
+                sendError(exchange, 400, "estado requerido");
                 return;
             }
             Integer clienteId = (json.has("cliente_id") && !json.get("cliente_id").isJsonNull()) ? json.get("cliente_id").getAsInt() : null;
@@ -2153,21 +2410,14 @@ public class Main {
                 cur.setInt(1, id);
                 ResultSet rs = cur.executeQuery();
                 if (!rs.next()) { sendError(exchange, 404, "Denuncia no encontrada"); return; }
-                String actual = rs.getString("estado");
-                if ("cerrada".equals(actual) && "cerrada".equals(nuevoEstado)) { sendError(exchange, 400, "La denuncia ya esta cerrada"); return; }
-                // Transiciones validas: pendiente->en_proceso|rechazada|pendiente, en_proceso->cerrada|rechazada|pendiente|en_proceso, rechazada->pendiente|en_proceso, cerrada->en_proceso (reapertura)
-                boolean ok = ("pendiente".equals(actual) && ("en_proceso".equals(nuevoEstado) || "rechazada".equals(nuevoEstado) || "pendiente".equals(nuevoEstado)))
-                        || ("en_proceso".equals(actual) && ("cerrada".equals(nuevoEstado) || "rechazada".equals(nuevoEstado) || "pendiente".equals(nuevoEstado) || "en_proceso".equals(nuevoEstado)))
-                        || ("rechazada".equals(actual) && ("pendiente".equals(nuevoEstado) || "en_proceso".equals(nuevoEstado)))
-                        || ("cerrada".equals(actual) && "en_proceso".equals(nuevoEstado));
-                if (!ok) { sendError(exchange, 400, "Transicion no permitida: " + actual + " -> " + nuevoEstado); return; }
                 String extraCols = (clienteId != null ? ", cliente_id = " + clienteId : "")
                         + (rutaToken != null ? ", ruta_token = '" + rutaToken.replace("'", "''") + "'" : "")
                         + (choferId != null ? ", chofer_id = " + choferId : "")
                         + (cuadrilla != null ? ", cuadrilla = '" + cuadrilla.replace("'", "''") + "'" : "")
                         + (asignadoA != null ? ", asignado_a = '" + asignadoA.replace("'", "''") + "'" : "");
                 String sql;
-                if ("cerrada".equals(nuevoEstado)) {
+                if ("cerrada".equalsIgnoreCase(nuevoEstado) || "completado".equalsIgnoreCase(nuevoEstado)) {
+                    nuevoEstado = "cerrada";
                     sql = "UPDATE denuncias SET estado = ?, observacion_cierre = ?, fecha_cierre = CURRENT_TIMESTAMP"
                             + extraCols + " WHERE id = ?";
                 } else {
@@ -2181,6 +2431,58 @@ public class Main {
                 ps.executeUpdate();
                 sendResponse(exchange, 200, "{\"status\":\"ok\",\"estado\":\"" + nuevoEstado + "\"}");
             }
+        }
+    }
+
+    /** Notifica al microservicio del Bot de Telegram (puerto 4000) sobre una ruta/ticket despachado */
+    private static boolean notificarBotDespacho(String routeToken, int denunciaId, String ticket, String barrio,
+            String descripcion, double lat, double lon, String choferNombre, String choferTel, String telegramId,
+            String vehiculoNombre, double distTotal, int tiempoEst) {
+        try {
+            String botUrl = getEnvOrDefault("BOT_DISPATCH_URL", "http://localhost:4000/api/despacho/ruta");
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("movilNumero", 1);
+            payload.put("token", routeToken);
+            payload.put("denunciaId", denunciaId);
+            payload.put("ticket", ticket);
+            payload.put("barrio", barrio);
+            payload.put("descripcion", descripcion);
+            payload.put("latitud", lat);
+            payload.put("longitud", lon);
+            payload.put("distanciaTotal", distTotal);
+            payload.put("tiempoEstimado", tiempoEst);
+            payload.put("seguimientoUrl", "http://localhost:8085/ruta.html?token=" + routeToken);
+
+            Map<String, Object> choferMap = new HashMap<>();
+            choferMap.put("nombre", choferNombre);
+            choferMap.put("telefono", choferTel);
+            choferMap.put("telegramId", telegramId);
+            payload.put("chofer", choferMap);
+
+            Map<String, Object> vehMap = new HashMap<>();
+            vehMap.put("nombre", vehiculoNombre);
+            vehMap.put("chapa", "");
+            payload.put("vehiculo", vehMap);
+
+            Map<String, Object> pto = new HashMap<>();
+            pto.put("nombre", "Ticket " + ticket + " - " + barrio + " (" + descripcion + ")");
+            pto.put("latitud", lat);
+            pto.put("longitud", lon);
+            payload.put("clientes", Collections.singletonList(pto));
+
+            String jsonBody = gson.toJson(payload);
+            HttpClient client = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(4)).build();
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(botUrl))
+                    .timeout(java.time.Duration.ofSeconds(6))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                    .build();
+            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+            return res.statusCode() >= 200 && res.statusCode() < 300;
+        } catch (Exception e) {
+            System.out.println("⚠️ No se pudo contactar al Bot en puerto 4000: " + e.getMessage());
+            return false;
         }
     }
 
@@ -2226,7 +2528,6 @@ public class Main {
                     try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
                         conn.setAutoCommit(false);
                         try {
-                            // 1. Obtener la denuncia
                             String sqlDen = "SELECT * FROM denuncias WHERE id = ?";
                             PreparedStatement psDen = conn.prepareStatement(sqlDen);
                             psDen.setInt(1, denunciaId);
@@ -2242,15 +2543,17 @@ public class Main {
                             String categoria = rsDen.getString("categoria");
                             String descripcion = rsDen.getString("descripcion");
                             String fotoUrl = rsDen.getString("foto_url");
+                            String estadoAnterior = rsDen.getString("estado") != null ? rsDen.getString("estado") : "";
+                            String existingRouteToken = rsDen.getString("ruta_token");
                             double lat = rsDen.getDouble("latitud");
                             double lon = rsDen.getDouble("longitud");
                             Integer existingClienteId = (Integer) rsDen.getObject("cliente_id");
+                            boolean eraRechazada = estadoAnterior.toLowerCase().startsWith("rechazad");
 
                             if (nombrePunto.isEmpty()) {
-                                nombrePunto = "Denuncia " + ticket + " - " + barrio;
+                                nombrePunto = "Ticket " + ticket + " - " + barrio;
                             }
 
-                            // 2. Obtener o crear cliente (punto de recolección)
                             int clienteId;
                             if (existingClienteId != null && existingClienteId > 0) {
                                 clienteId = existingClienteId;
@@ -2274,144 +2577,110 @@ public class Main {
                                 clienteId = rsCli.next() ? rsCli.getInt(1) : 0;
                             }
 
-                            // 3. Obtener nombres del chofer y vehiculo
                             String choferNombre = "";
-                            try (PreparedStatement psCh = conn.prepareStatement("SELECT nombre FROM choferes WHERE id = ?")) {
+                            String choferTelefono = "";
+                            String choferTelegramId = "";
+                            try (PreparedStatement psCh = conn.prepareStatement("SELECT nombre, telefono, telegram_id FROM choferes WHERE id = ?")) {
                                 psCh.setInt(1, choferId);
                                 ResultSet rsCh = psCh.executeQuery();
-                                if (rsCh.next()) choferNombre = rsCh.getString("nombre");
+                                if (rsCh.next()) {
+                                    choferNombre = rsCh.getString("nombre");
+                                    choferTelefono = rsCh.getString("telefono") != null ? rsCh.getString("telefono") : "";
+                                    choferTelegramId = rsCh.getString("telegram_id") != null ? rsCh.getString("telegram_id") : "";
+                                }
                             }
 
-                            String vehiculoNombre = "";
+                            String vehiculoNombre = "Camión Recolector #01";
                             if (vehiculoId != null && vehiculoId > 0) {
                                 try (PreparedStatement psVh = conn.prepareStatement("SELECT nombre FROM vehiculos WHERE id = ?")) {
                                     psVh.setInt(1, vehiculoId);
                                     ResultSet rsVh = psVh.executeQuery();
                                     if (rsVh.next()) vehiculoNombre = rsVh.getString("nombre");
                                 }
-                            }
-
-                            // 4. Buscar si el chofer ya tiene una ruta activa (estado = 'en_curso')
-                            String sqlRutaActiva = "SELECT token, movil_numero, clientes_json, distancia_total, tiempo_estimado, vehiculo_id, vehiculo_nombre FROM rutas_generadas WHERE chofer_id = ? AND estado = 'en_curso' ORDER BY fecha DESC LIMIT 1";
-                            PreparedStatement psRuta = conn.prepareStatement(sqlRutaActiva);
-                            psRuta.setInt(1, choferId);
-                            ResultSet rsRuta = psRuta.executeQuery();
-
-                            String routeToken;
-                            boolean esNuevaRuta;
-                            int totalParadas;
-                            int movilNumero = 1;
-
-                            if (rsRuta.next()) {
-                                // ---- Caso A: El chofer ya tiene ruta en curso -> agregar parada extra ----
-                                esNuevaRuta = false;
-                                routeToken = rsRuta.getString("token");
-                                movilNumero = rsRuta.getInt("movil_numero");
-                                if (vehiculoId == null || vehiculoId <= 0) {
-                                    vehiculoId = (Integer) rsRuta.getObject("vehiculo_id");
-                                    vehiculoNombre = rsRuta.getString("vehiculo_nombre");
-                                }
-                                double distTotal = rsRuta.getDouble("distancia_total");
-                                int tiempoEstimado = rsRuta.getInt("tiempo_estimado");
-                                String jsonStr = rsRuta.getString("clientes_json");
-                                List<Map<String, Object>> clientesList = parseJsonList(jsonStr);
-                                if (clientesList == null) clientesList = new ArrayList<>();
-
-                                // Calcular distancia desde la ultima parada actual hasta el nuevo punto
-                                double distExtra = 0.0;
-                                if (!clientesList.isEmpty()) {
-                                    Map<String, Object> ultimo = clientesList.get(clientesList.size() - 1);
-                                    double lastLat = ((Double) ultimo.get("latitud")).doubleValue();
-                                    double lastLon = ((Double) ultimo.get("longitud")).doubleValue();
-                                    distExtra = haversine(lastLat, lastLon, lat, lon) * 1.3;
-                                    distExtra = Math.round(distExtra * 100.0) / 100.0;
-                                    ultimo.put("distancia_siguiente", distExtra);
-                                }
-
-                                // Nuevo punto diferenciado como denuncia asignada
-                                Map<String, Object> nuevoPunto = new HashMap<>();
-                                nuevoPunto.put("id", (double) clienteId);
-                                nuevoPunto.put("nombre", nombrePunto);
-                                nuevoPunto.put("latitud", lat);
-                                nuevoPunto.put("longitud", lon);
-                                nuevoPunto.put("distancia_siguiente", 0.0);
-                                nuevoPunto.put("es_denuncia", true);
-                                nuevoPunto.put("tipo", "denuncia");
-                                nuevoPunto.put("ticket", ticket);
-                                nuevoPunto.put("categoria", categoria);
-                                nuevoPunto.put("descripcion", descripcion);
-                                nuevoPunto.put("foto_url", fotoUrl);
-                                nuevoPunto.put("estado", "pendiente");
-                                nuevoPunto.put("observacion", observacion);
-
-                                clientesList.add(nuevoPunto);
-                                totalParadas = clientesList.size();
-                                distTotal = Math.round((distTotal + distExtra) * 100.0) / 100.0;
-                                tiempoEstimado = (int) Math.ceil((distTotal / 40.0) * 60.0);
-
-                                // Actualizar rutas_generadas
-                                String updateRutaSql = "UPDATE rutas_generadas SET clientes_json = ?, distancia_total = ?, tiempo_estimado = ? WHERE token = ?";
-                                PreparedStatement psUp = conn.prepareStatement(updateRutaSql);
-                                psUp.setString(1, gson.toJson(clientesList));
-                                psUp.setDouble(2, distTotal);
-                                psUp.setInt(3, tiempoEstimado);
-                                psUp.setString(4, routeToken);
-                                psUp.executeUpdate();
-
-                                // Insertar en entregas
-                                String insEntrega = "INSERT INTO entregas (ruta_token, cliente_id, estado, observacion, orden_en_ruta) VALUES (?, ?, 'pendiente', ?, ?)";
-                                PreparedStatement psEnt = conn.prepareStatement(insEntrega);
-                                psEnt.setString(1, routeToken);
-                                psEnt.setInt(2, clienteId);
-                                psEnt.setString(3, observacion);
-                                psEnt.setInt(4, totalParadas);
-                                psEnt.executeUpdate();
-
                             } else {
-                                // ---- Caso B: Chofer sin ruta activa -> Generar nueva ruta activa ----
-                                esNuevaRuta = true;
-                                routeToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-                                totalParadas = 1;
-
-                                // Si no selecciono vehiculo, tomar el primero activo
-                                if (vehiculoId == null || vehiculoId <= 0) {
-                                    try (PreparedStatement psV1 = conn.prepareStatement("SELECT id, nombre FROM vehiculos WHERE activo = true LIMIT 1")) {
-                                        ResultSet rsV1 = psV1.executeQuery();
-                                        if (rsV1.next()) {
-                                            vehiculoId = rsV1.getInt("id");
-                                            vehiculoNombre = rsV1.getString("nombre");
-                                        }
+                                try (PreparedStatement psV1 = conn.prepareStatement("SELECT id, nombre FROM vehiculos WHERE activo = true LIMIT 1")) {
+                                    ResultSet rsV1 = psV1.executeQuery();
+                                    if (rsV1.next()) {
+                                        vehiculoId = rsV1.getInt("id");
+                                        vehiculoNombre = rsV1.getString("nombre");
                                     }
                                 }
+                            }
 
-                                Map<String, Object> nuevoPunto = new HashMap<>();
-                                nuevoPunto.put("id", (double) clienteId);
-                                nuevoPunto.put("nombre", nombrePunto);
-                                nuevoPunto.put("latitud", lat);
-                                nuevoPunto.put("longitud", lon);
-                                nuevoPunto.put("distancia_siguiente", 0.0);
-                                nuevoPunto.put("es_denuncia", true);
-                                nuevoPunto.put("tipo", "denuncia");
-                                nuevoPunto.put("ticket", ticket);
-                                nuevoPunto.put("categoria", categoria);
-                                nuevoPunto.put("descripcion", descripcion);
-                                nuevoPunto.put("foto_url", fotoUrl);
-                                nuevoPunto.put("estado", "pendiente");
-                                nuevoPunto.put("observacion", observacion);
+                            double baseLat = -25.2867;
+                            double baseLon = -57.6333;
+                            double distTotal = Math.round(haversine(baseLat, baseLon, lat, lon) * 1.3 * 100.0) / 100.0;
+                            if (distTotal < 0.5) distTotal = 1.2;
+                            int tiempoEstimado = Math.max(8, (int) Math.ceil((distTotal / 35.0) * 60.0));
 
-                                List<Map<String, Object>> clientesList = new ArrayList<>();
-                                clientesList.add(nuevoPunto);
+                            String routeToken;
+                            boolean esNuevaRuta = true;
+                            int totalParadas = 1;
+                            int movilNumero = 1;
 
-                                String insertRuta = "INSERT INTO rutas_generadas (token, movil_numero, clientes_json, distancia_total, tiempo_estimado, chofer_id, vehiculo_id, chofer_nombre, vehiculo_nombre, usuario_id, estado) VALUES (?, ?, ?, 0.0, 15, ?, ?, ?, ?, ?, 'en_curso')";
+                            Map<String, Object> nuevoPunto = new HashMap<>();
+                            nuevoPunto.put("id", (double) clienteId);
+                            nuevoPunto.put("nombre", nombrePunto);
+                            nuevoPunto.put("latitud", lat);
+                            nuevoPunto.put("longitud", lon);
+                            nuevoPunto.put("distancia_siguiente", distTotal);
+                            nuevoPunto.put("es_denuncia", true);
+                            nuevoPunto.put("tipo", "denuncia");
+                            nuevoPunto.put("ticket", ticket);
+                            nuevoPunto.put("categoria", categoria);
+                            nuevoPunto.put("descripcion", descripcion);
+                            nuevoPunto.put("foto_url", fotoUrl);
+                            nuevoPunto.put("estado", "pendiente");
+                            nuevoPunto.put("observacion", observacion);
+
+                            List<Map<String, Object>> clientesList = new ArrayList<>();
+                            clientesList.add(nuevoPunto);
+
+                            // Si la denuncia ya tenía una ruta pre-calculada sin asignar o rechazada, actualizar ese mismo token
+                            boolean reutilizoToken = false;
+                            if (existingRouteToken != null && !existingRouteToken.isEmpty()) {
+                                try (PreparedStatement psEx = conn.prepareStatement("SELECT token, distancia_total, tiempo_estimado FROM rutas_generadas WHERE token = ?")) {
+                                    psEx.setString(1, existingRouteToken);
+                                    ResultSet rsEx = psEx.executeQuery();
+                                    if (rsEx.next()) {
+                                        routeToken = existingRouteToken;
+                                        distTotal = rsEx.getDouble("distancia_total") > 0 ? rsEx.getDouble("distancia_total") : distTotal;
+                                        tiempoEstimado = rsEx.getInt("tiempo_estimado") > 0 ? rsEx.getInt("tiempo_estimado") : tiempoEstimado;
+                                        try (PreparedStatement psUpR = conn.prepareStatement(
+                                                "UPDATE rutas_generadas SET chofer_id = ?, vehiculo_id = ?, chofer_nombre = ?, vehiculo_nombre = ?, estado = 'en_curso', distancia_total = ?, tiempo_estimado = ?, clientes_json = ? WHERE token = ?")) {
+                                            psUpR.setInt(1, choferId);
+                                            if (vehiculoId != null) psUpR.setInt(2, vehiculoId); else psUpR.setNull(2, Types.INTEGER);
+                                            psUpR.setString(3, choferNombre);
+                                            psUpR.setString(4, vehiculoNombre);
+                                            psUpR.setDouble(5, distTotal);
+                                            psUpR.setInt(6, tiempoEstimado);
+                                            psUpR.setString(7, gson.toJson(clientesList));
+                                            psUpR.setString(8, routeToken);
+                                            psUpR.executeUpdate();
+                                        }
+                                        reutilizoToken = true;
+                                    } else {
+                                        routeToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+                                    }
+                                }
+                            } else {
+                                routeToken = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+                            }
+
+                            if (!reutilizoToken) {
+
+                                String insertRuta = "INSERT INTO rutas_generadas (token, movil_numero, clientes_json, distancia_total, tiempo_estimado, chofer_id, vehiculo_id, chofer_nombre, vehiculo_nombre, usuario_id, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'en_curso')";
                                 PreparedStatement psNewRuta = conn.prepareStatement(insertRuta);
                                 psNewRuta.setString(1, routeToken);
                                 psNewRuta.setInt(2, movilNumero);
                                 psNewRuta.setString(3, gson.toJson(clientesList));
-                                psNewRuta.setInt(4, choferId);
-                                if (vehiculoId != null) psNewRuta.setInt(5, vehiculoId); else psNewRuta.setNull(5, Types.INTEGER);
-                                psNewRuta.setString(6, choferNombre);
-                                psNewRuta.setString(7, vehiculoNombre);
-                                psNewRuta.setInt(8, userId);
+                                psNewRuta.setDouble(4, distTotal);
+                                psNewRuta.setInt(5, tiempoEstimado);
+                                psNewRuta.setInt(6, choferId);
+                                if (vehiculoId != null) psNewRuta.setInt(7, vehiculoId); else psNewRuta.setNull(7, Types.INTEGER);
+                                psNewRuta.setString(8, choferNombre);
+                                psNewRuta.setString(9, vehiculoNombre);
+                                psNewRuta.setInt(10, userId);
                                 psNewRuta.executeUpdate();
 
                                 String insEntrega = "INSERT INTO entregas (ruta_token, cliente_id, estado, observacion, orden_en_ruta) VALUES (?, ?, 'pendiente', ?, 1)";
@@ -2422,34 +2691,51 @@ public class Main {
                                 psEnt.executeUpdate();
                             }
 
-                            // 5. Actualizar la denuncia para vincularla a la ruta y chofer
-                            String updDenSql = "UPDATE denuncias SET estado = 'en_proceso', cliente_id = ?, chofer_id = ?, ruta_token = ?, asignado_a = ?, observacion_cierre = COALESCE(?, observacion_cierre) WHERE id = ?";
+                            String nuevoEstadoDenuncia = eraRechazada ? "reasignado" : "en_proceso";
+                            String updDenSql = "UPDATE denuncias SET estado = ?, motivo_rechazo = NULL, cliente_id = ?, chofer_id = ?, ruta_token = ?, asignado_a = ?, distancia_km = ?, tiempo_min = ?, observacion_cierre = COALESCE(?, observacion_cierre) WHERE id = ?";
                             PreparedStatement psUpDen = conn.prepareStatement(updDenSql);
-                            psUpDen.setInt(1, clienteId);
-                            psUpDen.setInt(2, choferId);
-                            psUpDen.setString(3, routeToken);
-                            psUpDen.setString(4, choferNombre);
-                            psUpDen.setString(5, observacion.isEmpty() ? null : observacion);
-                            psUpDen.setInt(6, denunciaId);
+                            psUpDen.setString(1, nuevoEstadoDenuncia);
+                            psUpDen.setInt(2, clienteId);
+                            psUpDen.setInt(3, choferId);
+                            psUpDen.setString(4, routeToken);
+                            psUpDen.setString(5, choferNombre);
+                            psUpDen.setDouble(6, distTotal);
+                            psUpDen.setInt(7, tiempoEstimado);
+                            psUpDen.setString(8, observacion.isEmpty() ? ("Asignado a " + choferNombre) : observacion);
+                            psUpDen.setInt(9, denunciaId);
                             psUpDen.executeUpdate();
 
+                            // Resolver alertas de rechazo pendientes para esta denuncia
+                            try (PreparedStatement psResAlert = conn.prepareStatement("UPDATE alertas_operativas SET estado = 'resuelta' WHERE denuncia_id = ? OR denuncia_ticket = ?")) {
+                                psResAlert.setInt(1, denunciaId);
+                                psResAlert.setString(2, ticket);
+                                psResAlert.executeUpdate();
+                            } catch (Exception ignored) {}
+
                             conn.commit();
+
+                            // Disparar automáticamente al Chatbot de Telegram
+                            boolean botEnviado = notificarBotDespacho(routeToken, denunciaId, ticket, barrio, descripcion, lat, lon,
+                                    choferNombre, choferTelefono, choferTelegramId, vehiculoNombre, distTotal, tiempoEstimado);
 
                             Map<String, Object> resp = new HashMap<>();
                             resp.put("success", true);
                             resp.put("token", routeToken);
+                            resp.put("estado", nuevoEstadoDenuncia);
                             resp.put("es_nueva_ruta", esNuevaRuta);
                             resp.put("movil_numero", movilNumero);
                             resp.put("chofer_id", choferId);
                             resp.put("chofer_nombre", choferNombre);
+                            resp.put("chofer_telefono", choferTelefono);
                             resp.put("vehiculo_id", vehiculoId);
                             resp.put("vehiculo_nombre", vehiculoNombre);
                             resp.put("cliente_id", clienteId);
+                            resp.put("distancia_km", distTotal);
+                            resp.put("tiempo_min", tiempoEstimado);
                             resp.put("total_paradas", totalParadas);
                             resp.put("ticket", ticket);
-                            resp.put("message", esNuevaRuta 
-                                ? "Nueva ruta activa generada para el chofer " + choferNombre + " con la denuncia " + ticket
-                                : "Denuncia " + ticket + " agregada exitosamente como parada #" + totalParadas + " a la ruta activa del chofer " + choferNombre);
+                            resp.put("bot_enviado", botEnviado);
+                            resp.put("message", "Ticket " + ticket + " asignado a " + choferNombre + " y despachado al Bot de Telegram.");
 
                             sendResponse(exchange, 200, gson.toJson(resp));
 
@@ -3483,12 +3769,19 @@ public class Main {
                         c.put("id", cId);
                         c.put("nombre", rs.getString("nombre"));
                         c.put("telefono", rs.getString("telefono"));
+                        try { c.put("zona", rs.getString("zona") != null ? rs.getString("zona") : ""); } catch (Exception ignored) { c.put("zona", ""); }
+                        try { c.put("telegram_id", rs.getString("telegram_id") != null ? rs.getString("telegram_id") : ""); } catch (Exception ignored) { c.put("telegram_id", ""); }
+                        try { c.put("latitud", rs.getObject("latitud")); } catch (Exception ignored) {}
+                        try { c.put("longitud", rs.getObject("longitud")); } catch (Exception ignored) {}
+                        try { c.put("vehiculo_id", rs.getObject("vehiculo_id")); } catch (Exception ignored) {}
 
+                        boolean enRuta = false;
                         // Verificar si tiene ruta activa en_curso
                         try (PreparedStatement pR = conn.prepareStatement("SELECT token, movil_numero, vehiculo_nombre, clientes_json FROM rutas_generadas WHERE chofer_id = ? AND estado = 'en_curso' LIMIT 1")) {
                             pR.setInt(1, cId);
                             ResultSet rsR = pR.executeQuery();
                             if (rsR.next()) {
+                                enRuta = true;
                                 c.put("ruta_activa_token", rsR.getString("token"));
                                 c.put("ruta_activa_movil", rsR.getInt("movil_numero"));
                                 c.put("ruta_activa_vehiculo", rsR.getString("vehiculo_nombre"));
@@ -3502,6 +3795,23 @@ public class Main {
                             }
                         } catch (Exception ignored) {}
 
+                        // Contar tickets asignados en curso y completados
+                        int ticketsActivos = 0;
+                        int ticketsCompletados = 0;
+                        try (PreparedStatement pT = conn.prepareStatement(
+                                "SELECT COUNT(*) FILTER (WHERE estado IN ('en_proceso','reasignado')) AS activos, COUNT(*) FILTER (WHERE estado = 'cerrada') AS cerrados FROM denuncias WHERE chofer_id = ?")) {
+                            pT.setInt(1, cId);
+                            ResultSet rsT = pT.executeQuery();
+                            if (rsT.next()) {
+                                ticketsActivos = rsT.getInt("activos");
+                                ticketsCompletados = rsT.getInt("cerrados");
+                            }
+                        } catch (Exception ignored) {}
+
+                        c.put("tickets_activos", ticketsActivos);
+                        c.put("tickets_completados", ticketsCompletados);
+                        c.put("estado_operativo", (enRuta || ticketsActivos > 0) ? "en_ruta" : "disponible");
+
                         choferes.add(c);
                     }
                     sendResponse(exchange, 200, gson.toJson(choferes));
@@ -3513,14 +3823,22 @@ public class Main {
                     String body = readRequestBody(exchange);
                     Map<String, Object> req = parseJsonMap(body);
                     String nombre = (String) req.get("nombre");
-                    String telefono = (String) req.get("telefono");
+                    String telefono = (String) req.getOrDefault("telefono", "");
+                    String zona = (String) req.getOrDefault("zona", "");
+                    String telegramId = (String) req.getOrDefault("telegram_id", "");
+                    Double lat = req.get("latitud") instanceof Number ? ((Number) req.get("latitud")).doubleValue() : null;
+                    Double lon = req.get("longitud") instanceof Number ? ((Number) req.get("longitud")).doubleValue() : null;
 
                     try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-                        String sql = "INSERT INTO choferes (nombre, telefono, usuario_id) VALUES (?, ?, ?)";
+                        String sql = "INSERT INTO choferes (nombre, telefono, zona, telegram_id, latitud, longitud, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
                         PreparedStatement pstmt = conn.prepareStatement(sql);
                         pstmt.setString(1, nombre);
                         pstmt.setString(2, telefono);
-                        pstmt.setInt(3, userId);
+                        pstmt.setString(3, zona != null ? zona : "");
+                        pstmt.setString(4, telegramId != null ? telegramId : "");
+                        if (lat != null) pstmt.setDouble(5, lat); else pstmt.setNull(5, Types.DOUBLE);
+                        if (lon != null) pstmt.setDouble(6, lon); else pstmt.setNull(6, Types.DOUBLE);
+                        pstmt.setInt(7, userId);
                         pstmt.executeUpdate();
                         sendResponse(exchange, 201, "{\"status\":\"ok\"}");
                     }
@@ -3551,20 +3869,28 @@ public class Main {
                 try {
                     String body = readRequestBody(exchange);
                     Map<String, Object> req = parseJsonMap(body);
-                    int id = ((Double) req.get("id")).intValue();
+                    int id = ((Number) req.get("id")).intValue();
                     String nombre = (String) req.get("nombre");
-                    String telefono = (String) req.get("telefono");
+                    String telefono = (String) req.getOrDefault("telefono", "");
+                    String zona = (String) req.getOrDefault("zona", "");
+                    String telegramId = (String) req.getOrDefault("telegram_id", "");
+                    Double lat = req.get("latitud") instanceof Number ? ((Number) req.get("latitud")).doubleValue() : null;
+                    Double lon = req.get("longitud") instanceof Number ? ((Number) req.get("longitud")).doubleValue() : null;
                     boolean manager = canManageRutas(exchange);
                     try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
                         String sql = manager
-                                ? "UPDATE choferes SET nombre = ?, telefono = ? WHERE id = ?"
-                                : "UPDATE choferes SET nombre = ?, telefono = ? WHERE id = ? AND usuario_id = ?";
+                                ? "UPDATE choferes SET nombre = ?, telefono = ?, zona = ?, telegram_id = ?, latitud = ?, longitud = ? WHERE id = ?"
+                                : "UPDATE choferes SET nombre = ?, telefono = ?, zona = ?, telegram_id = ?, latitud = ?, longitud = ? WHERE id = ? AND usuario_id = ?";
                         PreparedStatement pstmt = conn.prepareStatement(sql);
                         pstmt.setString(1, nombre);
                         pstmt.setString(2, telefono);
-                        pstmt.setInt(3, id);
+                        pstmt.setString(3, zona != null ? zona : "");
+                        pstmt.setString(4, telegramId != null ? telegramId : "");
+                        if (lat != null) pstmt.setDouble(5, lat); else pstmt.setNull(5, Types.DOUBLE);
+                        if (lon != null) pstmt.setDouble(6, lon); else pstmt.setNull(6, Types.DOUBLE);
+                        pstmt.setInt(7, id);
                         if (!manager) {
-                            pstmt.setInt(4, userId);
+                            pstmt.setInt(8, userId);
                         }
                         pstmt.executeUpdate();
                         sendResponse(exchange, 200, "{\"status\":\"updated\"}");

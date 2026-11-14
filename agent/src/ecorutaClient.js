@@ -123,8 +123,27 @@ async function consultarTicketEcoruta(ticket) {
     }
 }
 
+/**
+ * Consulta la lista de tickets activos/históricos del ciudadano (excluyendo falsas denuncias)
+ * GET /api/denuncias?ciudadano=...
+ */
+async function listarTicketsCiudadano(ciudadano = '') {
+    const query = ciudadano ? `?ciudadano=${encodeURIComponent(ciudadano.trim())}` : '?public=1';
+    const url = `${config.ecorutaBackendUrl}/api/denuncias${query}`;
+    const res = await httpRequest(url, { method: 'GET' });
+    if (res.status === 200) {
+        return {
+            success: true,
+            denuncias: Array.isArray(res.data) ? res.data : []
+        };
+    } else {
+        throw new Error(`Error listando tickets (${res.status}): ${JSON.stringify(res.data)}`);
+    }
+}
+
 module.exports = {
     httpRequest,
     enviarDenunciaAEcoruta,
-    consultarTicketEcoruta
+    consultarTicketEcoruta,
+    listarTicketsCiudadano
 };

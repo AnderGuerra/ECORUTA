@@ -16,13 +16,16 @@ async function obtenerImagenBase64(datos) {
         return { base64: buffer.toString('base64'), mime };
     }
 
-    // 2. Base64 directo
-    if (datos.foto_base64 && typeof datos.foto_base64 === 'string') {
-        const match = datos.foto_base64.match(/^data:(image\/\w+);base64,(.+)$/);
+    // 2. Base64 directo (en foto_base64 o en foto_url)
+    const rawB64 = (datos.foto_base64 && typeof datos.foto_base64 === 'string')
+        ? datos.foto_base64
+        : ((datos.foto_url && typeof datos.foto_url === 'string' && datos.foto_url.startsWith('data:image/')) ? datos.foto_url : null);
+    if (rawB64) {
+        const match = rawB64.match(/^data:(image\/\w+);base64,(.+)$/);
         if (match) {
             return { mime: match[1], base64: match[2] };
         }
-        return { mime: 'image/jpeg', base64: datos.foto_base64 };
+        return { mime: 'image/jpeg', base64: rawB64 };
     }
 
     // 3. Foto URL local (ej. http://localhost:.../uploads/...) o externa
@@ -78,39 +81,44 @@ async function validarDenunciaConGemini(datos) {
     }
 
     const prompt = `
-Eres el agente perito de validación de denuncias ciudadanas de recolección de residuos urbanos para el sistema EcoRuta.
-Audita la imagen adjunta para determinar si es una denuncia legítima o una FALSA DENUNCIA / SPAM / BROMA / FOTO IRRELEVANTE.
+Eres el agente perito forense de validación de imágenes y denuncias ciudadanas de recolección de residuos urbanos para el sistema EcoRuta de la Municipalidad de Asunción.
+Audita rigurosamente la imagen adjunta como PERITO FORENSE DIGITAL para determinar si es una fotografía real capturada en vivo con la cámara del teléfono en la vía pública, o si es una FALSA DENUNCIA / FOTO DE INTERNET / ARCHIVO (STOCK PHOTO) / CAPTURA DE PANTALLA / SPAM.
 
 Datos reportados por el ciudadano:
 - Categoría denunciada: "${datos.categoria || 'VERTEDERO_CLANDESTINO'}"
 - Descripción: "${datos.descripcion || ''}"
 - Barrio / Ubicación: "${datos.barrio || 'Sin especificar'}"
+- Fuente de captura declarada: "${datos.fuente_captura || 'CAMERA_LIVE'}"
+- Timestamp de captura: "${datos.timestamp_captura || 'No especificado'}"
 
-CRITERIOS DE FALSA DENUNCIA / RECHAZO:
-1. La imagen NO muestra residuos, basura, escombros, ramas de poda, contenedores o animales muertos (ej: selfies, personas, fotos de mascotas vivas, capturas de pantalla de chats/redes, memes, fotos completamente negras o borrosas, calles totalmente limpias sin desperfectos).
-2. La imagen contradice flagrantemente la descripción o busca burlar el sistema.
-3. No existe necesidad real de enviar un camión o cuadrilla de recolección.
+CRITERIOS FORENSES DE RECHAZO ESTRICTO (es_valida: false, es_falsa_denuncia: true):
+1. FOTOS DESCARGADAS DE INTERNET / GOOGLE / STOCK PHOTOS: Rechaza cualquier imagen que parezca foto de archivo o banco de imágenes (Shutterstock, Getty, Freepik, prensa web), iluminación profesional de estudio, composición publicitaria, o escenarios claramente de otro país/ciudad (camiones, matrículas, señalética en otro idioma o arquitectura ajena a Paraguay).
+2. CAPTURAS DE PANTALLA (SCREENSHOTS) O FOTOS A OTRA PANTALLA: Rechaza imágenes con bordes de navegador web, barras de estado de celular (batería, hora, señal), botones de interfaz de redes sociales/buscadores, marcas de agua, textos superpuestos, o artefactos de píxeles/efecto moiré por haberle tomado foto a un monitor de computadora o televisor.
+3. ARTEFACTOS DE COMPRESIÓN WEB O RECORTE ARTIFICIAL: Rechaza imágenes con marcos blancos/negros de recorte, miniaturas pixeladas descargadas de Google Images o memes.
+4. AUSENCIA DE INCIDENCIA REAL DE RESIDUOS: La imagen NO muestra residuos, basura, escombros, ramas de poda, contenedores rebasados o animales muertos en vía pública (ej: selfies, interiores de casas, oficinas, mascotas vivas, calles limpias, fotos negras o totalmente borrosas).
+5. CONTRADICCIÓN CON EL REPORTE: La imagen contradice flagrantemente la descripción o busca burlar el sistema.
 
-CRITERIOS DE DENUNCIA VÁLIDA:
-1. Se observan residuos sólidos, bolsas de basura amontonadas, vertederos clandestinos, contenedores rebasados, restos de poda o escombros en vía pública o predios.
-2. La denuncia es creíble y amerita recolección municipal.
+CRITERIOS DE DENUNCIA VÁLIDA (es_valida: true, es_falsa_denuncia: false):
+1. Es una fotografía auténtica tomada en el lugar de los hechos con cámara móvil en vivo (perspectiva natural a nivel de calle, sin marcas de agua ni bordes de pantalla).
+2. Se observan claramente residuos sólidos, bolsas de basura amontonadas, vertederos clandestinos, contenedores desbordados, restos de poda o escombros en la vía pública que requieren recolección municipal.
 
 Responde ÚNICAMENTE en JSON con el siguiente esquema estricto:
 {
   "es_falsa_denuncia": boolean,
   "es_valida": boolean,
+  "es_foto_internet_o_captura": boolean,
   "confianza": number, // entre 0.0 y 1.0
-  "categoria_detectada": string, // "VERTEDERO_CLANDESTINO", "CONTENEDOR_LLENO", "RESIDUO_VOLUMINOSO", "RESTOS_PODA", "ANIMAL_MUERTO", u "OTRO"
+  "categoria_detectada": string, // "VERTEDERO_CLANDESTINO", "CONTENEDOR_LLENO", "RESIDUO_VOLUMINOSO", "RESTOS_PODA", "ANIMAL_MUERTO", "FOTO_INTERNET_STOCK", u "OTRO"
   "elementos_visibles": string[],
-  "justificacion": string, // explicación concisa de lo observado
-  "motivo_rechazo": string | null // si es falsa denuncia, explicar brevemente por qué
+  "justificacion": string, // explicación forense concisa de lo observado
+  "motivo_rechazo": string | null // si es falsa denuncia o foto de internet/pantalla, explicar claramente por qué fue bloqueada
 }
 `;
 
     const modelosCandidatos = [
-        'gemini-3.1-flash-lite',
-        'gemini-flash-lite-latest',
-        'gemini-3.8-flash'
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-flash-lite-latest'
     ];
 
     const requestBody = {

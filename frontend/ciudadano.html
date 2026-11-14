@@ -1581,6 +1581,13 @@
 
             <!-- Right Controls -->
             <div class="controls-island">
+                <button class="btn-icon" onclick="irAlMenuPrincipalPorRol()" title="Volver al Menú Principal según tu Rol" style="width:auto; padding:0 10px; gap:6px; font-size:12px; font-weight:700; color:#10b981;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span>Menú Principal</span>
+                </button>
+
                 <div class="user-tag">
                     <span class="user-avatar-dot"></span>
                     <span id="navUsername">Ciudadano</span>
@@ -1830,16 +1837,16 @@
                         <div class="gps-location-card">
                             <div class="gps-info">
                                 <span style="font-size:12px; font-weight:600;">Coordenadas de la denuncia</span>
-                                <span class="gps-coords" id="coordsLabel">-25.2867, -57.6333 (Centro)</span>
+                                <span class="gps-coords" id="coordsLabel">Obteniendo GPS real...</span>
                             </div>
                             <button type="button" class="btn-gps-action" id="btnGetGPS">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9 12 2"/></svg>
                                 <span>Mi GPS</span>
                             </button>
                         </div>
-                        <span style="font-size:11px; color:var(--text-subtle);">Haz clic en el mapa de fondo para mover el pin si lo necesitas.</span>
-                        <input type="hidden" id="fLat" value="-25.2867">
-                        <input type="hidden" id="fLng" value="-57.6333">
+                        <span style="font-size:11px; color:var(--text-subtle);">Haz clic en el mapa de fondo o presiona "Mi GPS" para fijar tu ubicación real en Asunción.</span>
+                        <input type="hidden" id="fLat" value="">
+                        <input type="hidden" id="fLng" value="">
                     </div>
 
                     <!-- Datos de contacto opcionales -->
@@ -3003,6 +3010,15 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = `<span>Registrando en base de datos...</span>`;
 
+            const latVal = parseFloat(document.getElementById('fLat').value);
+            const lngVal = parseFloat(document.getElementById('fLng').value);
+            if (isNaN(latVal) || isNaN(lngVal) || (latVal === 0 && lngVal === 0)) {
+                alert('Coordenadas GPS inválidas o ausentes. Presiona "Mi GPS" o selecciona el punto exacto en el mapa.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+                return;
+            }
+
             const payload = {
                 nombre_ciudadano: document.getElementById('fNombre').value.trim() || storedUser,
                 telefono: document.getElementById('fTelefono').value.trim(),
@@ -3010,9 +3026,11 @@
                 barrio: document.getElementById('fBarrio').value.trim(),
                 direccion_referencia: document.getElementById('fDireccion').value.trim(),
                 descripcion: document.getElementById('fDescripcion').value.trim(),
-                latitud: parseFloat(document.getElementById('fLat').value) || -25.2867,
-                longitud: parseFloat(document.getElementById('fLng').value) || -57.6333,
-                foto_url: fotoVal
+                latitud: latVal,
+                longitud: lngVal,
+                foto_url: fotoVal,
+                fuente_captura: 'CAMERA_LIVE',
+                timestamp_captura: new Date().toISOString()
             };
 
             const authToken = localStorage.getItem('ecoruta_token') || localStorage.getItem('nexo_token') || '';
@@ -3027,7 +3045,7 @@
                 let resData;
                 let agentSuccess = false;
 
-                // 1. Intentar validación inteligente mediante Agente IA / Gemini (puerto 5050)
+                // 1. Intentar validación inteligente mediante Agente IA / Gemini + Geocerca Asunción (puerto 5050)
                 try {
                     submitBtn.innerHTML = `<span>Validando con Agente IA...</span>`;
                     const agentRes = await fetch(agentUrl, {
@@ -3035,17 +3053,21 @@
                         headers: headers,
                         body: JSON.stringify(payload)
                     });
-                    if (agentRes.ok) {
-                        const aData = await agentRes.json();
-                        if (aData.success && aData.ticket) {
-                            resData = aData;
-                            agentSuccess = true;
-                        } else if (aData.valido === false) {
-                            throw new Error(`Reporte no aceptado: ${aData.motivo || 'No cumple criterios de validación'}`);
-                        }
+                    const aData = await agentRes.json().catch(() => ({}));
+                    if (agentRes.status === 403 || aData.fuera_de_cobertura) {
+                        const motivoCob = aData.motivo || 'Fuera de zona de cobertura: Por el momento solo se admiten reportes dentro del municipio de Asunción';
+                        throw new Error(motivoCob);
+                    }
+                    if (agentRes.status === 422 || agentRes.status === 400 || aData.bloqueado_ia || aData.veredicto === 'RECHAZADA' || aData.valido === false) {
+                        const motivoRechazo = aData.motivo || (Array.isArray(aData.motivos) ? aData.motivos.join('; ') : '') || 'La evidencia fotográfica o los datos no cumplen los criterios de validación IA.';
+                        throw new Error(`Reporte bloqueado por IA Anti-Spam: ${motivoRechazo}`);
+                    }
+                    if (agentRes.ok && aData.success && aData.ticket) {
+                        resData = aData;
+                        agentSuccess = true;
                     }
                 } catch (agentErr) {
-                    if (agentErr.message && agentErr.message.includes('Reporte no aceptado')) {
+                    if (agentErr.message && (agentErr.message.includes('Reporte bloqueado') || agentErr.message.includes('Reporte no aceptado') || agentErr.message.includes('Fuera de zona de cobertura'))) {
                         throw agentErr;
                     }
                     console.warn('⚠️ Agente en puerto 5050 no disponible, recurriendo a EcoRuta Backend directo:', agentErr.message);
@@ -3196,6 +3218,25 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                     <span>Enviar Denuncia</span>
                 `;
+                // Solicitar automáticamente coordenadas GPS reales al abrir el formulario
+                const btnGps = document.getElementById('btnGetGPS');
+                if (btnGps && (!document.getElementById('fLat').value || !document.getElementById('fLng').value)) {
+                    btnGps.click();
+                }
+            }
+        }
+
+        function irAlMenuPrincipalPorRol() {
+            const rol = (localStorage.getItem('ecoruta_rol') || localStorage.getItem('nexo_rol') || 'ciudadano').toLowerCase();
+            if (rol === 'super_admin' || rol === 'admin' || rol === 'gestor') {
+                window.location.href = 'index.html';
+            } else if (rol === 'chofer') {
+                window.location.href = 'chofer.html';
+            } else {
+                closeModal('modalNewReport');
+                closeModal('modalCheckTicket');
+                closeDrawer();
+                closeBarrioCard();
             }
         }
 

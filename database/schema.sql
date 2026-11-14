@@ -1,5 +1,5 @@
 -- =====================================================
--- NEXO - Esquema de Base de Datos (PostgreSQL)
+-- NEXO / ECORUTA - Esquema de Base de Datos (PostgreSQL)
 -- =====================================================
 
 -- --------------------------------------------------
@@ -11,15 +11,12 @@ CREATE TABLE IF NOT EXISTS usuarios (
     password TEXT,
     nombre TEXT,
     rol TEXT,
-    activo BOOLEAN DEFAULT true
+    activo BOOLEAN DEFAULT true,
+    chofer_id INTEGER
 );
 
--- Usuarios por defecto (idempotente)
--- Roles unificados: superadmin (gestiona perfiles), gestor (rutas + denuncias, alias admin),
--- ciudadano (crea/consulta denuncias), chofer (acceso por token de ruta)
 INSERT INTO usuarios (username, password, nombre, rol, activo) VALUES ('admin', 'nexo2025', 'Gestor de Rutas y Denuncias', 'gestor', true)
     ON CONFLICT (username) DO NOTHING;
--- Migración rol unificado: el antiguo 'admin' pasa a 'gestor'
 UPDATE usuarios SET rol = 'gestor' WHERE rol = 'admin';
 INSERT INTO usuarios (username, password, nombre, rol, activo) VALUES ('superadmin', 'supernexo2025', 'Super Administrador', 'superadmin', true)
     ON CONFLICT (username) DO NOTHING;
@@ -29,7 +26,7 @@ INSERT INTO usuarios (username, password, nombre, rol, activo) VALUES ('ciudadan
     ON CONFLICT (username) DO NOTHING;
 
 -- --------------------------------------------------
--- CLIENTES
+-- CLIENTES (Puntos de Recolección)
 -- --------------------------------------------------
 CREATE TABLE IF NOT EXISTS clientes (
     id SERIAL PRIMARY KEY,
@@ -45,7 +42,7 @@ CREATE TABLE IF NOT EXISTS clientes (
 );
 
 -- --------------------------------------------------
--- REGLAS DE RUTEO (límites por categoría por móvil)
+-- REGLAS DE RUTEO
 -- --------------------------------------------------
 CREATE TABLE IF NOT EXISTS reglas_ruteo (
     id SERIAL PRIMARY KEY,
@@ -56,7 +53,7 @@ CREATE TABLE IF NOT EXISTS reglas_ruteo (
 );
 
 -- --------------------------------------------------
--- CATEGORIAS (editables desde Configuración)
+-- CATEGORIAS
 -- --------------------------------------------------
 CREATE TABLE IF NOT EXISTS categorias (
     id SERIAL PRIMARY KEY,
@@ -64,16 +61,20 @@ CREATE TABLE IF NOT EXISTS categorias (
     activo BOOLEAN DEFAULT true,
     usuario_id INTEGER DEFAULT 1 REFERENCES usuarios(id) ON DELETE CASCADE
 );
--- Nombre único por usuario (case-insensitive)
 CREATE UNIQUE INDEX IF NOT EXISTS uq_categorias_nombre_usuario ON categorias (LOWER(nombre), usuario_id);
 
 -- --------------------------------------------------
--- CHOFERES
+-- CHOFERES (Con Zona, Ubicación y Telegram ID)
 -- --------------------------------------------------
 CREATE TABLE IF NOT EXISTS choferes (
     id SERIAL PRIMARY KEY,
     nombre TEXT,
     telefono TEXT,
+    zona TEXT DEFAULT '',
+    telegram_id TEXT DEFAULT '',
+    latitud DOUBLE PRECISION,
+    longitud DOUBLE PRECISION,
+    vehiculo_id INTEGER,
     activo BOOLEAN DEFAULT true,
     usuario_id INTEGER DEFAULT 1 REFERENCES usuarios(id) ON DELETE CASCADE
 );
@@ -122,10 +123,7 @@ CREATE TABLE IF NOT EXISTS entregas (
 );
 
 -- --------------------------------------------------
--- DENUNCIAS CIUDADANAS (port del repo recoleccion-basura-app)
--- Estados: pendiente -> en_proceso -> cerrada | rechazada
--- pendiente: creada por ciudadano. en_proceso: su barrio/cliente entro en ruta.
--- cerrada: chofer finalizo el punto vinculado. rechazada: gestor la descarta.
+-- DENUNCIAS CIUDADANAS Y DESPACHO AUTOMÁTICO
 -- --------------------------------------------------
 CREATE TABLE IF NOT EXISTS denuncias (
     id SERIAL PRIMARY KEY,
@@ -139,9 +137,18 @@ CREATE TABLE IF NOT EXISTS denuncias (
     latitud DOUBLE PRECISION NOT NULL,
     longitud DOUBLE PRECISION NOT NULL,
     foto_url TEXT,
-    estado TEXT DEFAULT 'pendiente',
+    estado TEXT DEFAULT 'verificado',
+    motivo_rechazo TEXT,
+    choferes_descartados TEXT DEFAULT '',
+    distancia_km DOUBLE PRECISION DEFAULT 0.0,
+    tiempo_min INTEGER DEFAULT 15,
     usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
+    chofer_id INTEGER REFERENCES choferes(id) ON DELETE SET NULL,
+    chofer_sugerido_id INTEGER REFERENCES choferes(id) ON DELETE SET NULL,
+    chofer_sugerido_nombre TEXT,
+    cuadrilla TEXT,
+    asignado_a TEXT,
     ruta_token TEXT REFERENCES rutas_generadas(token) ON DELETE SET NULL,
     observacion_cierre TEXT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

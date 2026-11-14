@@ -11,6 +11,7 @@ class AuthService {
   String? username;
   String? nombre;
   String? rol;
+  final List<String> misTicketsRecientes = [];
 
   bool get isLoggedIn => token != null && token!.isNotEmpty;
 

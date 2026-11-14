@@ -435,12 +435,17 @@
     </div>
 
     <div class="header">
-        <div class="header-content">
-            <div class="logo-area">
-                <div class="logo-icon"><i class="fas fa-recycle"></i></div>
-                <h1>EcoRuta · Mi Ruta</h1>
+        <div class="header-content" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <div class="logo-area">
+                    <div class="logo-icon"><i class="fas fa-recycle"></i></div>
+                    <h1>EcoRuta · Mi Ruta</h1>
+                </div>
+                <p id="movilLabel" style="margin:0;">Móvil cargando...</p>
             </div>
-            <p id="movilLabel" style="margin:0;">Móvil cargando...</p>
+            <button type="button" onclick="volverMenuPorRol()" style="background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); border-radius:12px; padding:8px 14px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fas fa-home"></i> Volver al Menú Principal
+            </button>
         </div>
         <div id="bannerFinalizada" class="banner-finalizada" style="display: none;">
             <i class="fas fa-lock"></i> RUTA FINALIZADA - SOLO LECTURA
@@ -483,6 +488,17 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ========== OBTENER TOKEN ==========
+        function volverMenuPorRol() {
+            const rol = (localStorage.getItem('ecoruta_rol') || localStorage.getItem('nexo_rol') || 'chofer').toLowerCase();
+            if (rol === 'ciudadano') {
+                window.location.href = 'ciudadano.html';
+            } else if (rol === 'super_admin' || rol === 'admin' || rol === 'gestor') {
+                window.location.href = 'index.html';
+            } else {
+                window.location.href = 'chofer.html';
+            }
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
         let mapInstance = null;
